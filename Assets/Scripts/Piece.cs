@@ -1,45 +1,37 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+п»їusing UnityEngine;
 
-/// <summary>
-/// Скрипт отвечает за поведение падающей фигуры:
-/// – перемещение влево/вправо;
-/// – вращение;
-/// – автоматическое падение;
-/// – фиксацию фигуры и добавление её блоков в сетку поля.
-/// После установки фигуры запускается проверка совпадений "3 в ряд".
-/// </summary>
 public class Piece : MonoBehaviour
 {
-    // Время между шагами падения фигуры.
     public float fallTime = 1.0f;
-    private float fallTimer = 0;
+    private float fallTimer = 0f;
+
+    // Р Р°Р·РјРµСЂ РѕРґРЅРѕРіРѕ Р±Р»РѕРєР° (РїСЂРё Pixels Per Unit = 256 РґР»СЏ 256Г—256 СЃРїСЂР°Р№С‚Р° вЂ“ blockSize = 1)
+    public float blockSize = 1f;
+
     private Board board;
 
-    private void Start()
+    void Start()
     {
         board = FindObjectOfType<Board>();
     }
 
-    private void Update()
+    void Update()
     {
-        // Обработка перемещения влево.
+        // РџРµСЂРµРјРµС‰РµРЅРёРµ РІР»РµРІРѕ
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            transform.position += new Vector3(-1, 0, 0);
+            transform.position += Vector3.left;
             if (!IsValidPosition())
-                transform.position += new Vector3(1, 0, 0);
+                transform.position += Vector3.right;
         }
-        // Обработка перемещения вправо.
+        // РџРµСЂРµРјРµС‰РµРЅРёРµ РІРїСЂР°РІРѕ
         else if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            transform.position += new Vector3(1, 0, 0);
+            transform.position += Vector3.right;
             if (!IsValidPosition())
-                transform.position += new Vector3(-1, 0, 0);
+                transform.position += Vector3.left;
         }
-
-        // Обработка вращения фигуры (на 90° против часовой стрелки).
+        // РџРѕРІРѕСЂРѕС‚ РЅР° -90В° (РїРѕ С‡Р°СЃРѕРІРѕР№ СЃС‚СЂРµР»РєРµ)
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
             transform.Rotate(0, 0, -90);
@@ -47,57 +39,51 @@ public class Piece : MonoBehaviour
                 transform.Rotate(0, 0, 90);
         }
 
-        // Логика автоматического падения фигуры.
+        // РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРµ РїР°РґРµРЅРёРµ
         fallTimer += Time.deltaTime;
         if (fallTimer >= fallTime)
         {
-            transform.position += new Vector3(0, -1, 0);
-            // Если после перемещения фигура оказалась в недопустимой позиции (например, достигла дна)
+            transform.position += Vector3.down;
             if (!IsValidPosition())
             {
-                // Возвращаем фигуру на предыдущую позицию.
-                transform.position += new Vector3(0, 1, 0);
-                // Фиксируем фигуру: добавляем каждый её блок в сетку поля.
+                transform.position += Vector3.up;
                 AddToBoard();
-                // Запускаем проверку совпадений.
                 board.CheckMatches();
-                // Спавним следующую фигуру.
                 FindObjectOfType<GameManager>().SpawnNextPiece();
-                // Отключаем дальнейшее управление этой фигурой.
                 enabled = false;
             }
-            fallTimer = 0;
+            fallTimer = 0f;
         }
     }
 
-    /// <summary>
-    /// Проверяет, что все блоки фигуры находятся в допустимых позициях (в пределах поля и не заняты).
-    /// </summary>
     bool IsValidPosition()
     {
         foreach (Transform child in transform)
         {
             Vector2 pos = board.Round(child.position);
-            // Проверка, что блок внутри поля.
-            if (!board.IsInsideGrid(pos))
+            if (pos.x < 0 || pos.x + blockSize > Board.width)
                 return false;
-            // Проверка, что клетка не занята другим блоком.
-            if (pos.y < Board.height && board.grid[(int)pos.x, (int)pos.y] != null)
+            if (pos.y < board.bottomOffset)
                 return false;
+            if (pos.y < Board.height + board.bottomOffset)
+            {
+                int gridY = Mathf.RoundToInt(pos.y) - board.bottomOffset;
+                if (board.grid[(int)pos.x, gridY] != null)
+                    return false;
+            }
         }
         return true;
     }
 
-    /// <summary>
-    /// Добавляет все блоки фигуры в сетку игрового поля.
-    /// </summary>
     void AddToBoard()
     {
         foreach (Transform child in transform)
         {
             Vector2 pos = board.Round(child.position);
-            if (pos.y < Board.height)
-                board.grid[(int)pos.x, (int)pos.y] = child;
+            int x = Mathf.RoundToInt(pos.x);
+            int y = Mathf.RoundToInt(pos.y) - board.bottomOffset;
+            if (y < Board.height)
+                board.grid[x, y] = child;
         }
     }
 }

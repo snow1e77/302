@@ -1,29 +1,37 @@
-using System.Collections;
+п»їusing System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Класс для управления игровым полем.
-/// Размер поля: 12 x 24.
-/// Хранит информацию о занятых клетках и выполняет проверку совпадений "3 в ряд".
+/// РЎРєСЂРёРїС‚ РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ РёРіСЂРѕРІС‹Рј РїРѕР»РµРј.
+/// РќРёР¶РЅСЏСЏ РіСЂР°РЅРёС†Р° (РґРЅРѕ) РїРѕРґРЅСЏС‚Р° РЅР° bottomOffset СЋРЅРёС‚РѕРІ.
+/// Р”РѕРїСѓСЃС‚РёРјС‹Рµ РјРёСЂРѕРІС‹Рµ Y-РєРѕРѕСЂРґРёРЅР°С‚С‹ РґР»СЏ Р±Р»РѕРєРѕРІ РЅР°С‡РёРЅР°СЋС‚СЃСЏ СЃ bottomOffset.
+/// РџСЂРё С„РёРєСЃР°С†РёРё Р±Р»РѕРєРѕРІ РёРЅРґРµРєСЃ СЃС‚СЂРѕРєРё = (worldY - bottomOffset).
 /// </summary>
 public class Board : MonoBehaviour
 {
-    public static int width = 12;
-    public static int height = 24;
-    // Массив для хранения ссылок на занятые клетки (каждая клетка содержит ссылку на блок)
+    public static int width = 12;    // РљРѕР»РёС‡РµСЃС‚РІРѕ СЏС‡РµРµРє РїРѕ X
+    public static int height = 24;   // РљРѕР»РёС‡РµСЃС‚РІРѕ СЏС‡РµРµРє РїРѕ Y
+
+    // РџРѕРґРЅРёРјР°РµРј РґРЅРѕ РїРѕР»СЏ РЅР° 1 СЋРЅРёС‚ вЂ“ РґРѕРїСѓСЃС‚РёРјС‹Рµ Y-РєРѕРѕСЂРґРёРЅР°С‚С‹ РЅР°С‡РёРЅР°СЋС‚СЃСЏ СЃ 1
+    public int bottomOffset = 1;
+
+    // РЎРµС‚РєР° РёРіСЂРѕРІРѕРіРѕ РїРѕР»СЏ. РРЅРґРµРєСЃ РїРѕ Y РІС‹С‡РёСЃР»СЏРµС‚СЃСЏ РєР°Рє (worldY - bottomOffset)
     public Transform[,] grid = new Transform[width, height];
 
     /// <summary>
-    /// Проверяет, находится ли позиция внутри поля.
+    /// РџСЂРѕРІРµСЂСЏРµС‚, РЅР°С…РѕРґРёС‚СЃСЏ Р»Рё РјРёСЂРѕРІР°СЏ РїРѕР·РёС†РёСЏ pos РІРЅСѓС‚СЂРё РїРѕР»СЏ.
+    /// Р”РѕРїСѓСЃС‚РёРјРѕ, РµСЃР»Рё x РѕС‚ 0 РґРѕ width-1, Р° y в‰Ґ bottomOffset.
     /// </summary>
     public bool IsInsideGrid(Vector2 pos)
     {
-        return ((int)pos.x >= 0 && (int)pos.x < width && (int)pos.y >= 0);
+        int x = Mathf.RoundToInt(pos.x);
+        int y = Mathf.RoundToInt(pos.y);
+        return (x >= 0 && x < width && y >= bottomOffset);
     }
 
     /// <summary>
-    /// Округляет координаты позиции до целых чисел.
+    /// РћРєСЂСѓРіР»СЏРµС‚ РїРѕР·РёС†РёСЋ РґРѕ С†РµР»С‹С… Р·РЅР°С‡РµРЅРёР№.
     /// </summary>
     public Vector2 Round(Vector2 pos)
     {
@@ -31,25 +39,27 @@ public class Board : MonoBehaviour
     }
 
     /// <summary>
-    /// Добавляет блок в сетку в соответствии с его позицией.
+    /// Р¤РёРєСЃРёСЂСѓРµС‚ Р±Р»РѕРє, РїРµСЂРµРІРѕРґСЏ РјРёСЂРѕРІСѓСЋ РєРѕРѕСЂРґРёРЅР°С‚Сѓ РІ РёРЅРґРµРєСЃ СЃС‚СЂРѕРєРё: gridY = worldY - bottomOffset.
     /// </summary>
     public void AddToGrid(Transform block)
     {
         Vector2 pos = Round(block.position);
-        if ((int)pos.x >= 0 && (int)pos.x < width && (int)pos.y < height)
-            grid[(int)pos.x, (int)pos.y] = block;
+        int x = Mathf.RoundToInt(pos.x);
+        int y = Mathf.RoundToInt(pos.y) - bottomOffset; // РЅР°РїСЂРёРјРµСЂ, РµСЃР»Рё pos.y = 1 Рё bottomOffset = 1, С‚Рѕ y = 0
+        if (x >= 0 && x < width && y >= 0 && y < height)
+            grid[x, y] = block;
     }
 
     /// <summary>
-    /// Проверка совпадений: ищем группы из 3 и более одинаковых блоков по горизонтали и вертикали.
-    /// Если такая группа найдена – удаляем соответствующие блоки.
+    /// РџСЂРѕСЃС‚РµР№С€Р°СЏ РїСЂРѕРІРµСЂРєР° СЃРѕРІРїР°РґРµРЅРёР№ РїРѕ РіРѕСЂРёР·РѕРЅС‚Р°Р»Рё Рё РІРµСЂС‚РёРєР°Р»Рё.
+    /// Р•СЃР»Рё РЅР°Р№РґРµРЅРѕ 3 Рё Р±РѕР»РµРµ СЃРјРµР¶РЅС‹С… Р±Р»РѕРєРѕРІ РѕРґРёРЅР°РєРѕРІРѕРіРѕ С†РІРµС‚Р°, РѕРЅРё СѓРґР°Р»СЏСЋС‚СЃСЏ.
+    /// (Р­С‚РѕС‚ РјРµС‚РѕРґ РјРѕР¶РЅРѕ РґРѕСЂР°Р±РѕС‚Р°С‚СЊ РїРѕРґ РєРѕРЅРєСЂРµС‚РЅСѓСЋ Р»РѕРіРёРєСѓ РёРіСЂС‹.)
     /// </summary>
     public void CheckMatches()
     {
-        // Список блоков, которые нужно удалить.
         List<Transform> tilesToRemove = new List<Transform>();
 
-        // Проходим по всем клеткам поля.
+        // РџСЂРѕР±РµРіР°РµРј РїРѕ РІСЃРµР№ СЃРµС‚РєРµ
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -59,7 +69,7 @@ public class Board : MonoBehaviour
                 {
                     Color tileColor = tile.GetComponent<SpriteRenderer>().color;
 
-                    // Проверка горизонтального совпадения.
+                    // Р“РѕСЂРёР·РѕРЅС‚Р°Р»СЊРЅР°СЏ РїСЂРѕРІРµСЂРєР°
                     List<Transform> matchHorizontal = new List<Transform>();
                     matchHorizontal.Add(tile);
                     int xTemp = x + 1;
@@ -71,14 +81,12 @@ public class Board : MonoBehaviour
                     }
                     if (matchHorizontal.Count >= 3)
                     {
-                        foreach (var t in matchHorizontal)
-                        {
+                        foreach (Transform t in matchHorizontal)
                             if (!tilesToRemove.Contains(t))
                                 tilesToRemove.Add(t);
-                        }
                     }
 
-                    // Проверка вертикального совпадения.
+                    // Р’РµСЂС‚РёРєР°Р»СЊРЅР°СЏ РїСЂРѕРІРµСЂРєР°
                     List<Transform> matchVertical = new List<Transform>();
                     matchVertical.Add(tile);
                     int yTemp = y + 1;
@@ -90,54 +98,37 @@ public class Board : MonoBehaviour
                     }
                     if (matchVertical.Count >= 3)
                     {
-                        foreach (var t in matchVertical)
-                        {
+                        foreach (Transform t in matchVertical)
                             if (!tilesToRemove.Contains(t))
                                 tilesToRemove.Add(t);
-                        }
                     }
                 }
             }
         }
 
-        // Удаляем найденные совпадения.
+        // РЈРґР°Р»СЏРµРј СЃРѕРІРїР°РІС€РёРµ Р±Р»РѕРєРё
         foreach (Transform t in tilesToRemove)
         {
             Vector2 pos = Round(t.position);
-            if ((int)pos.x >= 0 && (int)pos.x < width && (int)pos.y < height)
-                grid[(int)pos.x, (int)pos.y] = null;
+            int x = Mathf.RoundToInt(pos.x);
+            int y = Mathf.RoundToInt(pos.y) - bottomOffset;
+            if (x >= 0 && x < width && y >= 0 && y < height)
+                grid[x, y] = null;
             Destroy(t.gameObject);
         }
 
-        // Можно запустить падение блоков, если вы хотите, чтобы над удалёнными блоками опустились верхние.
-        StartCoroutine(FillEmptySpaces());
+        // РћС‚РєР»СЋС‡Р°РµРј РѕРїСѓСЃРєР°РЅРёРµ Р±Р»РѕРєРѕРІ вЂ“ Р±Р»РѕРєРё РѕСЃС‚Р°СЋС‚СЃСЏ РЅР° СЃРІРѕРёС… РјРµСЃС‚Р°С… (РІ РІРѕР·РґСѓС…Рµ)
+        // Р•СЃР»Рё С…РѕС‚РёС‚Рµ РїРѕС‚РѕРј РІРµСЂРЅСѓС‚СЊ РїР°РґРµРЅРёРµ, РјРѕР¶РЅРѕ РІС‹Р·РІР°С‚СЊ FillEmptySpaces()
+        // StartCoroutine(FillEmptySpaces());
     }
 
     /// <summary>
-    /// Корутина, которая заставляет блоки выше пустых клеток падать вниз.
+    /// РћС‚РєР»СЋС‡С‘РЅРЅС‹Р№ РјРµС‚РѕРґ РѕРїСѓСЃРєР°РЅРёСЏ Р±Р»РѕРєРѕРІ.
+    /// Р•СЃР»Рё РѕСЃС‚Р°РІРёС‚СЊ РїСѓСЃС‚С‹Рј, Р±Р»РѕРєРё РЅРµ Р±СѓРґСѓС‚ РїРµСЂРµРјРµС‰Р°С‚СЊСЃСЏ РІРЅРёР· РґР»СЏ Р·Р°РїРѕР»РЅРµРЅРёСЏ РїСѓСЃС‚РѕС‚.
     /// </summary>
     IEnumerator FillEmptySpaces()
     {
-        yield return new WaitForSeconds(0.1f);
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 1; y < height; y++)
-            {
-                if (grid[x, y] == null)
-                {
-                    for (int k = y + 1; k < height; k++)
-                    {
-                        if (grid[x, k] != null)
-                        {
-                            grid[x, y] = grid[x, k];
-                            grid[x, k] = null;
-                            // Перемещаем блок в новую позицию
-                            grid[x, y].position = new Vector2(x, y);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+        yield return null;
+        // РњРµС‚РѕРґ РЅРµ РѕРїСѓСЃРєР°РµС‚ Р±Р»РѕРєРё вЂ“ РѕСЃС‚Р°РІР»СЏРµРј РµРіРѕ РїСѓСЃС‚С‹Рј
     }
 }

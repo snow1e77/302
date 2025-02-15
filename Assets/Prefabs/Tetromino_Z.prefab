@@ -59,7 +59,6 @@ GameObject:
   m_Component:
   - component: {fileID: 3753787725342982801}
   - component: {fileID: 859576876440795026}
-  - component: {fileID: 2024914423028541224}
   m_Layer: 0
   m_Name: Square (3)
   m_TagString: Untagged
@@ -134,19 +133,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &2024914423028541224
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3810219986314609003}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a88453630df3f440a5072035b8fcdb1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  possibleColors: []
 --- !u!1 &5822021353463684610
 GameObject:
   m_ObjectHideFlags: 0
@@ -157,7 +143,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2196102579659357462}
   - component: {fileID: 3018079401771029769}
-  - component: {fileID: 8698020126475158453}
   m_Layer: 0
   m_Name: Square (2)
   m_TagString: Untagged
@@ -232,19 +217,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &8698020126475158453
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5822021353463684610}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a88453630df3f440a5072035b8fcdb1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  possibleColors: []
 --- !u!1 &6518700184152619516
 GameObject:
   m_ObjectHideFlags: 0
@@ -255,7 +227,6 @@ GameObject:
   m_Component:
   - component: {fileID: 7120305924394298512}
   - component: {fileID: 121146977206226968}
-  - component: {fileID: 5478806331574145385}
   m_Layer: 0
   m_Name: Square (1)
   m_TagString: Untagged
@@ -330,19 +301,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &5478806331574145385
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6518700184152619516}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a88453630df3f440a5072035b8fcdb1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  possibleColors: []
 --- !u!1 &8140458587413038557
 GameObject:
   m_ObjectHideFlags: 0
@@ -353,7 +311,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2053035349856405597}
   - component: {fileID: 5111733796649014624}
-  - component: {fileID: 9067680804233224289}
   m_Layer: 0
   m_Name: Square
   m_TagString: Untagged
@@ -428,16 +385,3 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &9067680804233224289
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8140458587413038557}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a88453630df3f440a5072035b8fcdb1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  possibleColors: []
