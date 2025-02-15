@@ -3,12 +3,28 @@
   "WorkspaceRootPath": "E:\\Unity\\z302\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\camerafitboard.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\camerafitboard.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\piece.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\piece.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\board.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|E:\\Unity\\z302\\assets\\scripts\\board.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\board.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\boardoutline.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\boardoutline.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\tile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\tile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\camerafitboard.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\camerafitboard.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -18,17 +34,69 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Tile.cs",
+              "DocumentMoniker": "E:\\Unity\\z302\\Assets\\Scripts\\Tile.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Tile.cs",
+              "ToolTip": "E:\\Unity\\z302\\Assets\\Scripts\\Tile.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Tile.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-02-15T14:16:40.402Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "GameManager.cs",
+              "DocumentMoniker": "E:\\Unity\\z302\\Assets\\Scripts\\GameManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\GameManager.cs",
+              "ToolTip": "E:\\Unity\\z302\\Assets\\Scripts\\GameManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\GameManager.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-02-15T14:16:26.475Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "Piece.cs",
+              "DocumentMoniker": "E:\\Unity\\z302\\Assets\\Scripts\\Piece.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Piece.cs",
+              "ToolTip": "E:\\Unity\\z302\\Assets\\Scripts\\Piece.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Piece.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAE4AAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-02-15T13:53:16.925Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "BoardOutline.cs",
+              "DocumentMoniker": "E:\\Unity\\z302\\Assets\\Scripts\\BoardOutline.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\BoardOutline.cs",
+              "ToolTip": "E:\\Unity\\z302\\Assets\\Scripts\\BoardOutline.cs",
+              "RelativeToolTip": "Assets\\Scripts\\BoardOutline.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAC8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-02-15T13:03:34.637Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
               "Title": "CameraFitBoard.cs",
               "DocumentMoniker": "E:\\Unity\\z302\\Assets\\Scripts\\CameraFitBoard.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\CameraFitBoard.cs",
               "ToolTip": "E:\\Unity\\z302\\Assets\\Scripts\\CameraFitBoard.cs",
               "RelativeToolTip": "Assets\\Scripts\\CameraFitBoard.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACcAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-02-15T13:02:31.011Z",
               "EditorCaption": ""
@@ -41,7 +109,7 @@
               "RelativeDocumentMoniker": "Assets\\Scripts\\Board.cs",
               "ToolTip": "E:\\Unity\\z302\\Assets\\Scripts\\Board.cs",
               "RelativeToolTip": "Assets\\Scripts\\Board.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAE8AAAAAAAAAAAAUwIYAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-02-15T12:55:06.433Z",
               "EditorCaption": ""
