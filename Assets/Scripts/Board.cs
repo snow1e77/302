@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Управляет игровым полем.
-/// Внутренняя сетка имеет размеры (width) x (height + extraRows).
+/// Управляет игровым полем. Внутренняя сетка имеет размеры width x (height + extraRows).
 /// Дно поля поднято на bottomOffset единиц – допустимые мировые Y начинаются с bottomOffset.
-/// При фиксации тайлов в сетке индекс строки = (worldY - bottomOffset).
-/// Реализованы проверка совпадений (3+ подряд тайлов одного цвета) и гравитация для связных групп.
+/// При фиксации тайлов в сетке индекс строки вычисляется как (worldY - bottomOffset).
+/// Реализованы совпадения (3+ подряд тайлов одного цвета) и гравитация для связных групп.
 /// </summary>
 public class Board : MonoBehaviour
 {
@@ -15,9 +14,9 @@ public class Board : MonoBehaviour
     public static int height = 24;      // Число видимых строк
 
     public int extraRows = 4;           // Дополнительные строки (для висящих тайлов)
-    public int bottomOffset = 1;        // Подъём дна поля (допустимые мировые Y ≥ bottomOffset)
+    public int bottomOffset = 1;        // Подъём дна (допустимые Y ≥ bottomOffset)
 
-    // Полная высота сетки
+    // Полная высота сетки = height + extraRows
     public Transform[,] grid;
 
     void Awake()
@@ -26,9 +25,8 @@ public class Board : MonoBehaviour
     }
 
     /// <summary>
-    /// Определяет ячейку, в которую попадает позиция.
-    /// При условии, что pivot спрайта = (0.5, 0.5), клетка вычисляется как Floor(pos + 0.5)
-    /// (то есть, если позиция равна (3.2, 5.7), ячейка будет (Floor(3.7)=3, Floor(6.2)=6)).
+    /// Возвращает координаты ячейки для данной мировой позиции.
+    /// При pivot = (0.5, 0.5) вычисляем как Floor(pos + 0.5).
     /// </summary>
     public Vector2 GetCellCoordinates(Vector2 pos)
     {
@@ -37,8 +35,7 @@ public class Board : MonoBehaviour
 
     /// <summary>
     /// Проверяет, находится ли мировая позиция pos внутри сетки.
-    /// Допустимые X: 0 ... width-1.
-    /// Допустимые Y: от bottomOffset до bottomOffset + gridHeight - 1.
+    /// Допустимые X: от 0 до width - 1; Y: от bottomOffset до bottomOffset + gridHeight - 1.
     /// </summary>
     public bool IsInsideGrid(Vector2 pos)
     {
@@ -49,7 +46,7 @@ public class Board : MonoBehaviour
     }
 
     /// <summary>
-    /// Фиксирует тайл в сетке. Индекс строки = (cell.y - bottomOffset).
+    /// Фиксирует тайл в сетке: индекс строки = (cell.y - bottomOffset).
     /// </summary>
     public void AddToGrid(Transform tile)
     {
@@ -63,7 +60,7 @@ public class Board : MonoBehaviour
     /// <summary>
     /// Проверяет совпадения по горизонтали и вертикали для всей сетки.
     /// Удаляются только группы, где 3 и более подряд тайлов имеют один и тот же цвет.
-    /// После удаления запускается гравитация, а через небольшую задержку – повторная проверка.
+    /// После удаления запускается гравитация, а через задержку повторно проверяются совпадения.
     /// </summary>
     public void CheckMatches()
     {
@@ -143,6 +140,7 @@ public class Board : MonoBehaviour
 
     /// <summary>
     /// Гравитация: опускает тайлы (или связные группы) вниз, пока под ними пусто.
+    /// Группа опускается, если для всех ячеек непосредственно под ней пусто.
     /// </summary>
     public IEnumerator FillEmptySpaces()
     {
@@ -160,7 +158,6 @@ public class Board : MonoBehaviour
                         {
                             if (grid[x, k] != null)
                             {
-                                // Перемещаем тайл вниз
                                 grid[x, y] = grid[x, k];
                                 grid[x, k] = null;
                                 grid[x, y].position = new Vector2(x, k - 1 + bottomOffset);

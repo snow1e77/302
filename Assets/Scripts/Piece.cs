@@ -3,119 +3,52 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Управляет падающей фигурой (как в Тетрисе).
-/// После того, как фигура не может опускаться дальше, её тайлы фиксируются в сетке,
-/// затем запускается проверка совпадений, гравитация и спавнится новая фигура.
-/// Теперь каждая фигура составлена из тайлов, каждому из которых назначается свой случайный цвет
-/// из набора ровно из 4 цветов. При этом алгоритм пытается так назначать цвета, чтобы
-/// соседние (по горизонтали или вертикали) тайлы не имели одного цвета более двух раз подряд.
-/// Реализованы hard drop (по пробелу) и wall kicks при повороте.
+/// Фигура получает цвета для тайлов согласно настройке (для I-фигуры – единый цвет, для остальных – разноцветные).
+/// Реализованы hard drop (по пробелу) и wall kicks при повороте. Если I-фигура не может повернуться, то она пробует сместиться на один блок вправо,
+/// а затем, если необходимо, на один блок влево.
+/// Поскольку pivot фигуры находится в центре, используется GetCellCoordinates для вычисления ячеек.
 /// </summary>
 public class Piece : MonoBehaviour
 {
-    public float fallTime = 1.0f; // Интервал автоматического падения
+    public float fallTime = 1.0f;
     private float fallTimer = 0f;
-
-    // Размер одного тайла (при использовании спрайта 256×256 с Pixels Per Unit = 256, blockSize = 1)
+    private bool _hasLanded = false;
     public float blockSize = 1f;
-
-    // Массив доступных цветов (ровно 4 цвета)
     public Color[] availableColors = new Color[] { Color.red, Color.blue, Color.green, Color.yellow };
+
+    // Флаг для I-фигуры; установите true в инспекторе для I-фигуры
+    public bool isIShape = false;
 
     private Board board;
 
     void Start()
     {
         board = FindObjectOfType<Board>();
-        AssignColorsToTiles();
-    }
 
-    /// <summary>
-    /// Назначает каждому тайлу внутри фигуры свой цвет.
-    /// Алгоритм проходит по всем дочерним объектам (тайлам) в порядке сортировки по локальной позиции.
-    /// Для каждого тайла проверяются уже обработанные соседи (по горизонтали и вертикали).
-    /// Если среди соседей уже назначен один и тот же цвет два раза, этот цвет исключается из кандидатов.
-    /// Если кандидатных цветов не осталось, выбирается случайный цвет из всех.
-    /// </summary>
-    void AssignColorsToTiles()
-    {
-        // Получаем список всех дочерних тайлов (исключая сам объект фигуры)
-        Transform[] allChildren = GetComponentsInChildren<Transform>();
-        List<Transform> tiles = new List<Transform>();
-        foreach (Transform t in allChildren)
+        if (!isIShape)
         {
-            if (t != transform)
-                tiles.Add(t);
+            AssignTileColors();
         }
-        // Сортируем тайлы по локальным координатам (сначала по Y, затем по X)
-        tiles.Sort((a, b) =>
+        else
         {
-            if (a.localPosition.y != b.localPosition.y)
-                return a.localPosition.y.CompareTo(b.localPosition.y);
-            return a.localPosition.x.CompareTo(b.localPosition.x);
-        });
-
-        // Для каждого тайла выбираем цвет с учётом соседей
-        for (int i = 0; i < tiles.Count; i++)
-        {
-            Transform tile = tiles[i];
-            List<Color> neighborColors = new List<Color>();
-
-            // Проверяем уже обработанных соседей (по локальной позиции)
-            for (int j = 0; j < i; j++)
+            // Для I-фигуры все тайлы получают один случайный цвет
+            Color pieceColor = availableColors[Random.Range(0, availableColors.Length)];
+            foreach (Transform child in transform)
             {
-                Transform other = tiles[j];
-                if (AreNeighbors(tile, other))
-                {
-                    SpriteRenderer srOther = other.GetComponent<SpriteRenderer>();
-                    if (srOther != null)
-                        neighborColors.Add(srOther.color);
-                }
+                SpriteRenderer sr = child.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                    sr.color = pieceColor;
             }
-
-            // Подсчитываем, сколько раз каждый цвет встречается среди соседей
-            Dictionary<Color, int> colorCount = new Dictionary<Color, int>();
-            foreach (Color col in availableColors)
-                colorCount[col] = 0;
-            foreach (Color col in neighborColors)
-            {
-                if (colorCount.ContainsKey(col))
-                    colorCount[col]++;
-            }
-
-            // Формируем список кандидатов: разрешаем тот цвет, если он встречается меньше 2 раз
-            List<Color> candidates = new List<Color>();
-            foreach (Color col in availableColors)
-            {
-                if (colorCount[col] < 2)
-                    candidates.Add(col);
-            }
-
-            Color chosen;
-            if (candidates.Count > 0)
-                chosen = candidates[Random.Range(0, candidates.Count)];
-            else
-                chosen = availableColors[Random.Range(0, availableColors.Length)];
-
-            SpriteRenderer sr = tile.GetComponent<SpriteRenderer>();
-            if (sr != null)
-                sr.color = chosen;
         }
-    }
-
-    // Метод для проверки, являются ли два тайла соседями (по горизонтали или вертикали) в фигуре.
-    bool AreNeighbors(Transform a, Transform b)
-    {
-        Vector2 posA = a.localPosition;
-        Vector2 posB = b.localPosition;
-        float dx = Mathf.Abs(posA.x - posB.x);
-        float dy = Mathf.Abs(posA.y - posB.y);
-        // Соседи должны находиться на расстоянии blockSize по одной из осей и практически совпадать по другой.
-        return (Mathf.Approximately(dx, blockSize) && Mathf.Approximately(dy, 0f)) ||
-               (Mathf.Approximately(dy, blockSize) && Mathf.Approximately(dx, 0f));
     }
 
     void Update()
     {
+        if (_hasLanded)
+            return;
+
+        SnapPosition();
+
         // Перемещение влево
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
@@ -130,7 +63,7 @@ public class Piece : MonoBehaviour
             if (!IsValidPosition())
                 transform.position += Vector3.left;
         }
-        // Поворот с wall-kick
+        // Поворот с wall kicks
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
             Vector3 originalPos = transform.position;
@@ -138,76 +71,88 @@ public class Piece : MonoBehaviour
             transform.Rotate(0, 0, -90);
             if (!IsValidPosition())
             {
-                // Пробуем несколько смещений
-                Vector3[] kicks = new Vector3[]
+                Vector3[] kicks;
+                if (isIShape)
                 {
-                    new Vector3(1,0,0),
-                    new Vector3(-1,0,0),
-                    new Vector3(0,1,0),
-                    new Vector3(0,-1,0)
-                };
-                bool valid = false;
+                    // Для I-фигуры используем стандартные смещения SRS
+                    kicks = new Vector3[]
+                    {
+                new Vector3(0, 0, 0),
+                new Vector3(-2, 0, 0),   // Отталкиваем на два блока влево
+                new Vector3(1, 0, 0),
+                new Vector3(-2, -1, 0),
+                new Vector3(1, 2, 0)
+                    };
+                }
+                else
+                {
+                    // Для остальных фигур добавляем вариант смещения на два блока влево
+                    kicks = new Vector3[]
+                    {
+                new Vector3(0, 0, 0),
+                new Vector3(1, 0, 0),
+                new Vector3(-1, 0, 0),
+                new Vector3(-2, 0, 0),   // Новый вариант: смещение на два блока влево
+                new Vector3(0, 1, 0),
+                new Vector3(0, -1, 0)
+                    };
+                }
+                bool validKick = false;
                 foreach (Vector3 kick in kicks)
                 {
                     transform.position = originalPos + kick;
                     if (IsValidPosition())
                     {
-                        valid = true;
+                        validKick = true;
                         break;
                     }
                 }
-                if (!valid)
+                if (!validKick)
                 {
                     transform.position = originalPos;
                     transform.rotation = originalRot;
                 }
             }
         }
+
         // Hard drop по пробелу
         if (Input.GetKeyDown(KeyCode.Space))
         {
             while (IsValidPosition())
             {
                 transform.position += Vector3.down;
+                SnapPosition();
             }
             transform.position += Vector3.up;
-            AddToBoard();
-            board.CheckMatches();
-            FindObjectOfType<GameManager>().SpawnNextPiece();
-            enabled = false;
+            SnapPosition();
+            LandPiece();
         }
         // Автоматическое падение
         fallTimer += Time.deltaTime;
         if (fallTimer >= fallTime)
         {
             transform.position += Vector3.down;
+            SnapPosition();
             if (!IsValidPosition())
             {
                 transform.position += Vector3.up;
-                AddToBoard();
-                board.CheckMatches();
-                FindObjectOfType<GameManager>().SpawnNextPiece();
-                enabled = false;
+                SnapPosition();
+                LandPiece();
             }
             fallTimer = 0f;
         }
     }
 
-    /// <summary>
-    /// Получает координаты ячейки для позиции, учитывая, что pivot тайла = (0.5, 0.5).
-    /// Вычисление происходит как Floor(pos + 0.5).
-    /// </summary>
+    void SnapPosition()
+    {
+        transform.position = new Vector3(Mathf.Round(transform.position.x), Mathf.Round(transform.position.y), transform.position.z);
+    }
+
     Vector2 GetCellCoordinates(Vector2 pos)
     {
         return new Vector2(Mathf.Floor(pos.x + 0.5f), Mathf.Floor(pos.y + 0.5f));
     }
 
-    /// <summary>
-    /// Проверяет, что каждый тайл (его позиция, приведённая к ячейке) находится внутри поля.
-    /// Допустимые X: от 0 до Board.width - 1.
-    /// Допустимые Y: >= board.bottomOffset.
-    /// Также проверяется, что соответствующая ячейка сетки не занята.
-    /// </summary>
     bool IsValidPosition()
     {
         foreach (Transform child in transform)
@@ -227,10 +172,17 @@ public class Piece : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Фиксирует все тайлы фигуры в сетке.
-    /// Индекс строки вычисляется как (cell.y - board.bottomOffset).
-    /// </summary>
+    void LandPiece()
+    {
+        if (_hasLanded)
+            return;
+        _hasLanded = true;
+        AddToBoard();
+        board.CheckMatches();
+        FindObjectOfType<GameManager>().SpawnNextPiece();
+        enabled = false;
+    }
+
     void AddToBoard()
     {
         foreach (Transform child in transform)
@@ -240,6 +192,63 @@ public class Piece : MonoBehaviour
             int y = (int)cell.y - board.bottomOffset;
             if (x >= 0 && x < Board.width && y >= 0 && y < board.grid.GetLength(1))
                 board.grid[x, y] = child;
+        }
+    }
+
+    void AssignTileColors()
+    {
+        Transform[] children = GetComponentsInChildren<Transform>();
+        List<Transform> tiles = new List<Transform>();
+        foreach (Transform t in children)
+        {
+            if (t != transform)
+                tiles.Add(t);
+        }
+        // Сортировка по локальным координатам (сначала по Y, затем по X)
+        tiles.Sort((a, b) =>
+        {
+            if (a.localPosition.y != b.localPosition.y)
+                return a.localPosition.y.CompareTo(b.localPosition.y);
+            return a.localPosition.x.CompareTo(b.localPosition.x);
+        });
+
+        // Если количество тайлов меньше или равно количеству доступных цветов, пытаемся назначить уникальные цвета
+        List<Color> colorsToAssign = new List<Color>();
+        if (tiles.Count <= availableColors.Length)
+        {
+            List<Color> shuffled = new List<Color>(availableColors);
+            for (int i = 0; i < shuffled.Count; i++)
+            {
+                int r = Random.Range(i, shuffled.Count);
+                Color temp = shuffled[i];
+                shuffled[i] = shuffled[r];
+                shuffled[r] = temp;
+            }
+            for (int i = 0; i < tiles.Count; i++)
+                colorsToAssign.Add(shuffled[i]);
+        }
+        else
+        {
+            // Если тайлов больше 4, назначаем уникальные для первых 4, а для остальных случайные
+            List<Color> shuffled = new List<Color>(availableColors);
+            for (int i = 0; i < shuffled.Count; i++)
+            {
+                int r = Random.Range(i, shuffled.Count);
+                Color temp = shuffled[i];
+                shuffled[i] = shuffled[r];
+                shuffled[r] = temp;
+            }
+            for (int i = 0; i < availableColors.Length; i++)
+                colorsToAssign.Add(shuffled[i]);
+            for (int i = availableColors.Length; i < tiles.Count; i++)
+                colorsToAssign.Add(availableColors[Random.Range(0, availableColors.Length)]);
+        }
+
+        for (int i = 0; i < tiles.Count; i++)
+        {
+            SpriteRenderer sr = tiles[i].GetComponent<SpriteRenderer>();
+            if (sr != null)
+                sr.color = colorsToAssign[i];
         }
     }
 }
