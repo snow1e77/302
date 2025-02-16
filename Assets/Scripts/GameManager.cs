@@ -13,12 +13,12 @@ public class GameManager : MonoBehaviour
 
     public void SpawnNextPiece()
     {
-        int totalPieces = tetrominoPrefabs.Length + 1;
-        int index = Random.Range(0, totalPieces);
-        GameObject pieceToSpawn = (index < tetrominoPrefabs.Length) ? tetrominoPrefabs[index] : pentominoPrefab;
+        int total = tetrominoPrefabs.Length + 1;
+        int index = Random.Range(0, total);
+        GameObject piece = (index < tetrominoPrefabs.Length) ? tetrominoPrefabs[index] : pentominoPrefab;
         Board board = FindObjectOfType<Board>();
-        Vector3 spawnPosition = new Vector3(Board.width / 2f, Board.height + board.bottomOffset, 0);
-        Instantiate(pieceToSpawn, spawnPosition, Quaternion.identity);
+        Vector3 spawnPos = new Vector3(Board.width / 2f, Board.height + board.bottomOffset, 0);
+        Instantiate(piece, spawnPos, Quaternion.identity);
     }
 
     void Start()

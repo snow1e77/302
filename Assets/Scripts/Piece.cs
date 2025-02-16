@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 
 /// <summary>
-/// Управляет падающей фигурой, как в Тетрисе.
-/// После того, как фигура не может дальше падать, её тайлы фиксируются в сетке,
-/// затем вызывается проверка совпадений, запускается гравитация и спавнится новая фигура.
-/// Каждая фигура получает один случайный цвет для всех своих тайлов, 
-/// выбранный из набора ровно из 4 цветов, при этом алгоритм пытается, чтобы соседние тайлы в фигуре не имели одинаковый цвет более двух раз подряд.
-/// Реализована также возможность hard drop по пробелу.
+/// Управляет падающей фигурой (как в Тетрисе).
+/// После того, как фигура не может опускаться дальше, её тайлы фиксируются в сетке,
+/// затем запускается проверка совпадений, гравитация и спавнится новая фигура.
+/// Теперь каждая фигура составлена из тайлов, каждому из которых назначается свой случайный цвет
+/// из набора ровно из 4 цветов. При этом алгоритм пытается так назначать цвета, чтобы
+/// соседние (по горизонтали или вертикали) тайлы не имели одного цвета более двух раз подряд.
+/// Реализованы hard drop (по пробелу) и wall kicks при повороте.
 /// </summary>
 public class Piece : MonoBehaviour
 {
@@ -25,8 +26,19 @@ public class Piece : MonoBehaviour
     void Start()
     {
         board = FindObjectOfType<Board>();
+        AssignColorsToTiles();
+    }
 
-        // Получаем список всех дочерних тайлов (исключая корневой объект фигуры)
+    /// <summary>
+    /// Назначает каждому тайлу внутри фигуры свой цвет.
+    /// Алгоритм проходит по всем дочерним объектам (тайлам) в порядке сортировки по локальной позиции.
+    /// Для каждого тайла проверяются уже обработанные соседи (по горизонтали и вертикали).
+    /// Если среди соседей уже назначен один и тот же цвет два раза, этот цвет исключается из кандидатов.
+    /// Если кандидатных цветов не осталось, выбирается случайный цвет из всех.
+    /// </summary>
+    void AssignColorsToTiles()
+    {
+        // Получаем список всех дочерних тайлов (исключая сам объект фигуры)
         Transform[] allChildren = GetComponentsInChildren<Transform>();
         List<Transform> tiles = new List<Transform>();
         foreach (Transform t in allChildren)
@@ -42,12 +54,13 @@ public class Piece : MonoBehaviour
             return a.localPosition.x.CompareTo(b.localPosition.x);
         });
 
-        // Назначаем цвет каждому тайлу с учетом того, чтобы соседние тайлы не имели более двух одинаковых цветов подряд.
-        // Для этого, для каждого тайла, смотрим уже обработанных соседей (по локальным координатам, где расстояние равно blockSize)
+        // Для каждого тайла выбираем цвет с учётом соседей
         for (int i = 0; i < tiles.Count; i++)
         {
             Transform tile = tiles[i];
             List<Color> neighborColors = new List<Color>();
+
+            // Проверяем уже обработанных соседей (по локальной позиции)
             for (int j = 0; j < i; j++)
             {
                 Transform other = tiles[j];
@@ -58,54 +71,47 @@ public class Piece : MonoBehaviour
                         neighborColors.Add(srOther.color);
                 }
             }
-            // Подсчитываем количество вхождений каждого цвета среди соседей
-            Dictionary<Color, int> colorFreq = new Dictionary<Color, int>();
+
+            // Подсчитываем, сколько раз каждый цвет встречается среди соседей
+            Dictionary<Color, int> colorCount = new Dictionary<Color, int>();
             foreach (Color col in availableColors)
-                colorFreq[col] = 0;
+                colorCount[col] = 0;
             foreach (Color col in neighborColors)
             {
-                if (colorFreq.ContainsKey(col))
-                    colorFreq[col]++;
+                if (colorCount.ContainsKey(col))
+                    colorCount[col]++;
             }
-            // Формируем список кандидатов: разрешаем тот цвет, который встречается меньше 2 раз
+
+            // Формируем список кандидатов: разрешаем тот цвет, если он встречается меньше 2 раз
             List<Color> candidates = new List<Color>();
             foreach (Color col in availableColors)
             {
-                if (colorFreq[col] < 2)
+                if (colorCount[col] < 2)
                     candidates.Add(col);
             }
+
             Color chosen;
             if (candidates.Count > 0)
                 chosen = candidates[Random.Range(0, candidates.Count)];
             else
-            {
-                // Если кандидатов нет, выбираем цвет с минимальной частотой
-                int minCount = int.MaxValue;
-                chosen = availableColors[0];
-                foreach (Color col in availableColors)
-                {
-                    if (colorFreq[col] < minCount)
-                    {
-                        minCount = colorFreq[col];
-                        chosen = col;
-                    }
-                }
-            }
-            // Назначаем выбранный цвет тайлу
+                chosen = availableColors[Random.Range(0, availableColors.Length)];
+
             SpriteRenderer sr = tile.GetComponent<SpriteRenderer>();
             if (sr != null)
                 sr.color = chosen;
         }
     }
 
-    // Метод для проверки, являются ли два тайла соседями (по горизонтали или вертикали) в фигуре
+    // Метод для проверки, являются ли два тайла соседями (по горизонтали или вертикали) в фигуре.
     bool AreNeighbors(Transform a, Transform b)
     {
         Vector2 posA = a.localPosition;
         Vector2 posB = b.localPosition;
-        Vector2 diff = new Vector2(Mathf.Abs(posA.x - posB.x), Mathf.Abs(posA.y - posB.y));
-        return (Mathf.Approximately(diff.x, blockSize) && Mathf.Approximately(diff.y, 0f)) ||
-               (Mathf.Approximately(diff.y, blockSize) && Mathf.Approximately(diff.x, 0f));
+        float dx = Mathf.Abs(posA.x - posB.x);
+        float dy = Mathf.Abs(posA.y - posB.y);
+        // Соседи должны находиться на расстоянии blockSize по одной из осей и практически совпадать по другой.
+        return (Mathf.Approximately(dx, blockSize) && Mathf.Approximately(dy, 0f)) ||
+               (Mathf.Approximately(dy, blockSize) && Mathf.Approximately(dx, 0f));
     }
 
     void Update()
@@ -124,14 +130,40 @@ public class Piece : MonoBehaviour
             if (!IsValidPosition())
                 transform.position += Vector3.left;
         }
-        // Поворот на -90° (по часовой стрелке)
+        // Поворот с wall-kick
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
+            Vector3 originalPos = transform.position;
+            Quaternion originalRot = transform.rotation;
             transform.Rotate(0, 0, -90);
             if (!IsValidPosition())
-                transform.Rotate(0, 0, 90);
+            {
+                // Пробуем несколько смещений
+                Vector3[] kicks = new Vector3[]
+                {
+                    new Vector3(1,0,0),
+                    new Vector3(-1,0,0),
+                    new Vector3(0,1,0),
+                    new Vector3(0,-1,0)
+                };
+                bool valid = false;
+                foreach (Vector3 kick in kicks)
+                {
+                    transform.position = originalPos + kick;
+                    if (IsValidPosition())
+                    {
+                        valid = true;
+                        break;
+                    }
+                }
+                if (!valid)
+                {
+                    transform.position = originalPos;
+                    transform.rotation = originalRot;
+                }
+            }
         }
-        // Hard drop (мгновенное опускание) по пробелу
+        // Hard drop по пробелу
         if (Input.GetKeyDown(KeyCode.Space))
         {
             while (IsValidPosition())
@@ -162,24 +194,33 @@ public class Piece : MonoBehaviour
     }
 
     /// <summary>
-    /// Проверяет, что каждый тайл (позиция тайла – его нижний левый угол) находится внутри поля.
-    /// Допустимые X: от 0 до Board.width - blockSize.
-    /// Допустимые Y: должны быть >= board.bottomOffset.
-    /// Также проверяется, что соответствующая ячейка в сетке не занята.
+    /// Получает координаты ячейки для позиции, учитывая, что pivot тайла = (0.5, 0.5).
+    /// Вычисление происходит как Floor(pos + 0.5).
+    /// </summary>
+    Vector2 GetCellCoordinates(Vector2 pos)
+    {
+        return new Vector2(Mathf.Floor(pos.x + 0.5f), Mathf.Floor(pos.y + 0.5f));
+    }
+
+    /// <summary>
+    /// Проверяет, что каждый тайл (его позиция, приведённая к ячейке) находится внутри поля.
+    /// Допустимые X: от 0 до Board.width - 1.
+    /// Допустимые Y: >= board.bottomOffset.
+    /// Также проверяется, что соответствующая ячейка сетки не занята.
     /// </summary>
     bool IsValidPosition()
     {
         foreach (Transform child in transform)
         {
-            Vector2 pos = board.Round(child.position);
-            if (pos.x < 0 || pos.x + blockSize > Board.width)
+            Vector2 cell = GetCellCoordinates(child.position);
+            if (cell.x < 0 || cell.x >= Board.width)
                 return false;
-            if (pos.y < board.bottomOffset)
+            if (cell.y < board.bottomOffset)
                 return false;
-            if (pos.y < board.bottomOffset + board.grid.GetLength(1))
+            if (cell.y < board.bottomOffset + board.grid.GetLength(1))
             {
-                int gridY = Mathf.FloorToInt(pos.y) - board.bottomOffset;
-                if (board.grid[(int)pos.x, gridY] != null)
+                int gridY = (int)cell.y - board.bottomOffset;
+                if (board.grid[(int)cell.x, gridY] != null)
                     return false;
             }
         }
@@ -188,15 +229,15 @@ public class Piece : MonoBehaviour
 
     /// <summary>
     /// Фиксирует все тайлы фигуры в сетке.
-    /// При добавлении индекс строки вычисляется как (worldY - board.bottomOffset).
+    /// Индекс строки вычисляется как (cell.y - board.bottomOffset).
     /// </summary>
     void AddToBoard()
     {
         foreach (Transform child in transform)
         {
-            Vector2 pos = board.Round(child.position);
-            int x = Mathf.FloorToInt(pos.x);
-            int y = Mathf.FloorToInt(pos.y) - board.bottomOffset;
+            Vector2 cell = GetCellCoordinates(child.position);
+            int x = (int)cell.x;
+            int y = (int)cell.y - board.bottomOffset;
             if (x >= 0 && x < Board.width && y >= 0 && y < board.grid.GetLength(1))
                 board.grid[x, y] = child;
         }

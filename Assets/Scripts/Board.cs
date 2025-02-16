@@ -3,22 +3,21 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Управляет игровым полем. Видимая область имеет размеры width x height ячеек,
-/// но внутренняя сетка расширена на extraRows сверху для хранения висящих фигур.
+/// Управляет игровым полем.
+/// Внутренняя сетка имеет размеры (width) x (height + extraRows).
 /// Дно поля поднято на bottomOffset единиц – допустимые мировые Y начинаются с bottomOffset.
-/// При фиксации тайлов в сетке индекс строки вычисляется как (worldY - bottomOffset).
-/// Также реализована механика совпадений (удаляются группы из 3+ подряд тайлов одного цвета)
-/// и гравитация, когда связные группы опускаются вниз.
+/// При фиксации тайлов в сетке индекс строки = (worldY - bottomOffset).
+/// Реализованы проверка совпадений (3+ подряд тайлов одного цвета) и гравитация для связных групп.
 /// </summary>
 public class Board : MonoBehaviour
 {
     public static int width = 12;       // Число столбцов
     public static int height = 24;      // Число видимых строк
 
-    public int extraRows = 4;           // Дополнительные строки сверху
+    public int extraRows = 4;           // Дополнительные строки (для висящих тайлов)
     public int bottomOffset = 1;        // Подъём дна поля (допустимые мировые Y ≥ bottomOffset)
 
-    // Полная высота сетки = height + extraRows
+    // Полная высота сетки
     public Transform[,] grid;
 
     void Awake()
@@ -27,37 +26,50 @@ public class Board : MonoBehaviour
     }
 
     /// <summary>
-    /// Преобразует мировую позицию в координаты ячейки с округлением до ближайшего целого.
+    /// Определяет ячейку, в которую попадает позиция.
+    /// При условии, что pivot спрайта = (0.5, 0.5), клетка вычисляется как Floor(pos + 0.5)
+    /// (то есть, если позиция равна (3.2, 5.7), ячейка будет (Floor(3.7)=3, Floor(6.2)=6)).
     /// </summary>
-    public Vector2 Round(Vector2 pos)
+    public Vector2 GetCellCoordinates(Vector2 pos)
     {
-        return new Vector2(Mathf.Round(pos.x), Mathf.Round(pos.y));
+        return new Vector2(Mathf.Floor(pos.x + 0.5f), Mathf.Floor(pos.y + 0.5f));
     }
 
     /// <summary>
-    /// Фиксирует тайл в сетке.
-    /// Индекс строки = (worldY - bottomOffset).
+    /// Проверяет, находится ли мировая позиция pos внутри сетки.
+    /// Допустимые X: 0 ... width-1.
+    /// Допустимые Y: от bottomOffset до bottomOffset + gridHeight - 1.
+    /// </summary>
+    public bool IsInsideGrid(Vector2 pos)
+    {
+        Vector2 cell = GetCellCoordinates(pos);
+        int x = (int)cell.x;
+        int y = (int)cell.y;
+        return (x >= 0 && x < width && y >= bottomOffset && y < bottomOffset + grid.GetLength(1));
+    }
+
+    /// <summary>
+    /// Фиксирует тайл в сетке. Индекс строки = (cell.y - bottomOffset).
     /// </summary>
     public void AddToGrid(Transform tile)
     {
-        Vector2 pos = Round(tile.position);
-        int x = Mathf.RoundToInt(pos.x);
-        int y = Mathf.RoundToInt(pos.y) - bottomOffset;
+        Vector2 cell = GetCellCoordinates(tile.position);
+        int x = (int)cell.x;
+        int y = (int)cell.y - bottomOffset;
         if (x >= 0 && x < width && y >= 0 && y < grid.GetLength(1))
             grid[x, y] = tile;
     }
 
     /// <summary>
-    /// Проверяет совпадения по горизонтали и вертикали во всей сетке.
-    /// Удаляются только группы, где 3 или более подряд тайлов имеют одинаковый цвет.
-    /// После удаления запускается гравитация и через небольшую задержку повторно проверяются совпадения.
+    /// Проверяет совпадения по горизонтали и вертикали для всей сетки.
+    /// Удаляются только группы, где 3 и более подряд тайлов имеют один и тот же цвет.
+    /// После удаления запускается гравитация, а через небольшую задержку – повторная проверка.
     /// </summary>
     public void CheckMatches()
     {
         List<Transform> tilesToRemove = new List<Transform>();
         int gridHeight = grid.GetLength(1);
 
-        // Проходим по всей сетке
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < gridHeight; y++)
@@ -65,40 +77,44 @@ public class Board : MonoBehaviour
                 Transform tile = grid[x, y];
                 if (tile != null)
                 {
-                    Color tileColor = tile.GetComponent<SpriteRenderer>().color;
+                    Color col = tile.GetComponent<SpriteRenderer>().color;
 
                     // Горизонтальная проверка
-                    List<Transform> matchHorizontal = new List<Transform>();
-                    matchHorizontal.Add(tile);
-                    int xTemp = x + 1;
-                    while (xTemp < width && grid[xTemp, y] != null &&
-                           grid[xTemp, y].GetComponent<SpriteRenderer>().color == tileColor)
+                    List<Transform> matchH = new List<Transform>();
+                    matchH.Add(tile);
+                    int xt = x + 1;
+                    while (xt < width && grid[xt, y] != null &&
+                           grid[xt, y].GetComponent<SpriteRenderer>().color == col)
                     {
-                        matchHorizontal.Add(grid[xTemp, y]);
-                        xTemp++;
+                        matchH.Add(grid[xt, y]);
+                        xt++;
                     }
-                    if (matchHorizontal.Count >= 3)
+                    if (matchH.Count >= 3)
                     {
-                        foreach (Transform t in matchHorizontal)
+                        foreach (Transform t in matchH)
+                        {
                             if (!tilesToRemove.Contains(t))
                                 tilesToRemove.Add(t);
+                        }
                     }
 
                     // Вертикальная проверка
-                    List<Transform> matchVertical = new List<Transform>();
-                    matchVertical.Add(tile);
-                    int yTemp = y + 1;
-                    while (yTemp < gridHeight && grid[x, yTemp] != null &&
-                           grid[x, yTemp].GetComponent<SpriteRenderer>().color == tileColor)
+                    List<Transform> matchV = new List<Transform>();
+                    matchV.Add(tile);
+                    int yt = y + 1;
+                    while (yt < gridHeight && grid[x, yt] != null &&
+                           grid[x, yt].GetComponent<SpriteRenderer>().color == col)
                     {
-                        matchVertical.Add(grid[x, yTemp]);
-                        yTemp++;
+                        matchV.Add(grid[x, yt]);
+                        yt++;
                     }
-                    if (matchVertical.Count >= 3)
+                    if (matchV.Count >= 3)
                     {
-                        foreach (Transform t in matchVertical)
+                        foreach (Transform t in matchV)
+                        {
                             if (!tilesToRemove.Contains(t))
                                 tilesToRemove.Add(t);
+                        }
                     }
                 }
             }
@@ -108,9 +124,9 @@ public class Board : MonoBehaviour
         {
             foreach (Transform t in tilesToRemove)
             {
-                Vector2 pos = Round(t.position);
-                int x = Mathf.RoundToInt(pos.x);
-                int y = Mathf.RoundToInt(pos.y) - bottomOffset;
+                Vector2 cell = GetCellCoordinates(t.position);
+                int x = (int)cell.x;
+                int y = (int)cell.y - bottomOffset;
                 if (x >= 0 && x < width && y >= 0 && y < grid.GetLength(1))
                     grid[x, y] = null;
                 Destroy(t.gameObject);
@@ -126,81 +142,38 @@ public class Board : MonoBehaviour
     }
 
     /// <summary>
-    /// Гравитация: опускает тайлы, чтобы заполнить пустые места.
-    /// Если связная группа тайлов может опуститься (для всех ячеек ниже пусто), группа опускается на 1 ячейку.
+    /// Гравитация: опускает тайлы (или связные группы) вниз, пока под ними пусто.
     /// </summary>
     public IEnumerator FillEmptySpaces()
     {
-        bool movedAny;
+        bool moved;
         do
         {
-            movedAny = false;
-            bool[,] visited = new bool[width, grid.GetLength(1)];
+            moved = false;
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < grid.GetLength(1); y++)
                 {
-                    if (!visited[x, y] && grid[x, y] != null)
+                    if (grid[x, y] == null)
                     {
-                        List<Vector2Int> group = new List<Vector2Int>();
-                        Queue<Vector2Int> queue = new Queue<Vector2Int>();
-                        queue.Enqueue(new Vector2Int(x, y));
-                        visited[x, y] = true;
-                        while (queue.Count > 0)
+                        for (int k = y + 1; k < grid.GetLength(1); k++)
                         {
-                            Vector2Int cell = queue.Dequeue();
-                            group.Add(cell);
-                            Vector2Int[] neighbors = new Vector2Int[]
+                            if (grid[x, k] != null)
                             {
-                                new Vector2Int(cell.x + 1, cell.y),
-                                new Vector2Int(cell.x - 1, cell.y),
-                                new Vector2Int(cell.x, cell.y + 1),
-                                new Vector2Int(cell.x, cell.y - 1)
-                            };
-                            foreach (Vector2Int nb in neighbors)
-                            {
-                                if (nb.x >= 0 && nb.x < width && nb.y >= 0 && nb.y < grid.GetLength(1))
-                                {
-                                    if (!visited[nb.x, nb.y] && grid[nb.x, nb.y] != null)
-                                    {
-                                        visited[nb.x, nb.y] = true;
-                                        queue.Enqueue(nb);
-                                    }
-                                }
-                            }
-                        }
-                        bool canFall = true;
-                        foreach (Vector2Int cell in group)
-                        {
-                            if (cell.y == 0)
-                            {
-                                canFall = false;
+                                // Перемещаем тайл вниз
+                                grid[x, y] = grid[x, k];
+                                grid[x, k] = null;
+                                grid[x, y].position = new Vector2(x, k - 1 + bottomOffset);
+                                moved = true;
                                 break;
                             }
-                            if (grid[cell.x, cell.y - 1] != null && !group.Contains(new Vector2Int(cell.x, cell.y - 1)))
-                            {
-                                canFall = false;
-                                break;
-                            }
-                        }
-                        if (canFall)
-                        {
-                            group.Sort((a, b) => a.y.CompareTo(b.y));
-                            foreach (Vector2Int cell in group)
-                            {
-                                Transform t = grid[cell.x, cell.y];
-                                grid[cell.x, cell.y] = null;
-                                grid[cell.x, cell.y - 1] = t;
-                                t.position = new Vector2(cell.x, cell.y - 1 + bottomOffset);
-                            }
-                            movedAny = true;
                         }
                     }
                 }
             }
-            if (movedAny)
+            if (moved)
                 yield return new WaitForSeconds(0.1f);
-        } while (movedAny);
+        } while (moved);
         yield break;
     }
 }
