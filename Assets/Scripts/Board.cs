@@ -3,22 +3,20 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Управляет игровым полем.
-/// Видимая область имеет размеры width x height, но внутренняя сетка расширена 
-/// на extraRows сверху для обработки висящих фигур.
-/// Нижняя граница (дно) поднята на bottomOffset единиц.
-/// Индекс строки в сетке вычисляется как (worldY - bottomOffset).
+/// Управляет игровым полем. Видимая область имеет размеры width x height ячеек,
+/// но внутренняя сетка расширена на extraRows сверху для хранения висящих фигур.
+/// Дно поля поднято на bottomOffset единиц – допустимые мировые Y начинаются с bottomOffset.
+/// При фиксации тайлов в сетке индекс строки вычисляется как (worldY - bottomOffset).
+/// Также реализована механика совпадений (удаляются группы из 3+ подряд тайлов одного цвета)
+/// и гравитация, когда связные группы опускаются вниз.
 /// </summary>
 public class Board : MonoBehaviour
 {
-    public static int width = 12;    // Число столбцов
-    public static int height = 24;   // Число видимых строк
+    public static int width = 12;       // Число столбцов
+    public static int height = 24;      // Число видимых строк
 
-    // Дополнительные строки (например, 4) для хранения висящих фигур
-    public int extraRows = 4;
-
-    // Поднимаем дно поля на 1 единицу (например, если bottomOffset = 1, то допустимые Y ≥ 1)
-    public int bottomOffset = 1;
+    public int extraRows = 4;           // Дополнительные строки сверху
+    public int bottomOffset = 1;        // Подъём дна поля (допустимые мировые Y ≥ bottomOffset)
 
     // Полная высота сетки = height + extraRows
     public Transform[,] grid;
@@ -29,18 +27,7 @@ public class Board : MonoBehaviour
     }
 
     /// <summary>
-    /// Проверяет, находится ли мировая позиция pos внутри сетки.
-    /// Допустимые X: от 0 до width-1, допустимые Y: от bottomOffset до bottomOffset + gridHeight - 1.
-    /// </summary>
-    public bool IsInsideGrid(Vector2 pos)
-    {
-        int x = Mathf.RoundToInt(pos.x);
-        int y = Mathf.RoundToInt(pos.y);
-        return (x >= 0 && x < width && y >= bottomOffset && y < bottomOffset + grid.GetLength(1));
-    }
-
-    /// <summary>
-    /// Округляет позицию до целых значений.
+    /// Преобразует мировую позицию в координаты ячейки с округлением до ближайшего целого.
     /// </summary>
     public Vector2 Round(Vector2 pos)
     {
@@ -48,26 +35,28 @@ public class Board : MonoBehaviour
     }
 
     /// <summary>
-    /// Фиксирует блок, переводя мировую координату в индекс строки: gridY = worldY - bottomOffset.
+    /// Фиксирует тайл в сетке.
+    /// Индекс строки = (worldY - bottomOffset).
     /// </summary>
-    public void AddToGrid(Transform block)
+    public void AddToGrid(Transform tile)
     {
-        Vector2 pos = Round(block.position);
+        Vector2 pos = Round(tile.position);
         int x = Mathf.RoundToInt(pos.x);
         int y = Mathf.RoundToInt(pos.y) - bottomOffset;
         if (x >= 0 && x < width && y >= 0 && y < grid.GetLength(1))
-            grid[x, y] = block;
+            grid[x, y] = tile;
     }
 
     /// <summary>
-    /// Проверяет совпадения по горизонтали и вертикали для всей сетки.
-    /// Если найдено 3 и более смежных блока одного цвета, они удаляются.
+    /// Проверяет совпадения по горизонтали и вертикали во всей сетке.
+    /// Удаляются только группы, где 3 или более подряд тайлов имеют одинаковый цвет.
+    /// После удаления запускается гравитация и через небольшую задержку повторно проверяются совпадения.
     /// </summary>
     public void CheckMatches()
     {
         List<Transform> tilesToRemove = new List<Transform>();
-
         int gridHeight = grid.GetLength(1);
+
         // Проходим по всей сетке
         for (int x = 0; x < width; x++)
         {
@@ -76,11 +65,14 @@ public class Board : MonoBehaviour
                 Transform tile = grid[x, y];
                 if (tile != null)
                 {
-                    // Горизонтальная проверка: собираем подряд идущие тайлы по горизонтали
+                    Color tileColor = tile.GetComponent<SpriteRenderer>().color;
+
+                    // Горизонтальная проверка
                     List<Transform> matchHorizontal = new List<Transform>();
                     matchHorizontal.Add(tile);
                     int xTemp = x + 1;
-                    while (xTemp < width && grid[xTemp, y] != null)
+                    while (xTemp < width && grid[xTemp, y] != null &&
+                           grid[xTemp, y].GetComponent<SpriteRenderer>().color == tileColor)
                     {
                         matchHorizontal.Add(grid[xTemp, y]);
                         xTemp++;
@@ -92,11 +84,12 @@ public class Board : MonoBehaviour
                                 tilesToRemove.Add(t);
                     }
 
-                    // Вертикальная проверка: собираем подряд тайлы по вертикали
+                    // Вертикальная проверка
                     List<Transform> matchVertical = new List<Transform>();
                     matchVertical.Add(tile);
                     int yTemp = y + 1;
-                    while (yTemp < gridHeight && grid[x, yTemp] != null)
+                    while (yTemp < gridHeight && grid[x, yTemp] != null &&
+                           grid[x, yTemp].GetComponent<SpriteRenderer>().color == tileColor)
                     {
                         matchVertical.Add(grid[x, yTemp]);
                         yTemp++;
@@ -111,24 +104,30 @@ public class Board : MonoBehaviour
             }
         }
 
-        // Удаляем найденные тайлы
-        foreach (Transform t in tilesToRemove)
+        if (tilesToRemove.Count > 0)
         {
-            Vector2 pos = Round(t.position);
-            int x = Mathf.RoundToInt(pos.x);
-            int y = Mathf.RoundToInt(pos.y) - bottomOffset;
-            if (x >= 0 && x < width && y >= 0 && y < grid.GetLength(1))
-                grid[x, y] = null;
-            Destroy(t.gameObject);
+            foreach (Transform t in tilesToRemove)
+            {
+                Vector2 pos = Round(t.position);
+                int x = Mathf.RoundToInt(pos.x);
+                int y = Mathf.RoundToInt(pos.y) - bottomOffset;
+                if (x >= 0 && x < width && y >= 0 && y < grid.GetLength(1))
+                    grid[x, y] = null;
+                Destroy(t.gameObject);
+            }
+            StartCoroutine(FillEmptySpaces());
+            Invoke("DelayedCheckMatches", 0.2f);
         }
+    }
 
-        // После удаления запускаем гравитацию, чтобы оставшиеся тайлы опустились вниз
-        StartCoroutine(FillEmptySpaces());
+    void DelayedCheckMatches()
+    {
+        CheckMatches();
     }
 
     /// <summary>
-    /// Гравитация: опускает блоки, чтобы заполнить пустые места.
-    /// Если смежные блоки образуют группу, она падает вместе, если для всех клеток ниже пусто.
+    /// Гравитация: опускает тайлы, чтобы заполнить пустые места.
+    /// Если связная группа тайлов может опуститься (для всех ячеек ниже пусто), группа опускается на 1 ячейку.
     /// </summary>
     public IEnumerator FillEmptySpaces()
     {

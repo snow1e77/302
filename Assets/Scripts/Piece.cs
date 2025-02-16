@@ -2,19 +2,22 @@
 using System.Collections.Generic;
 
 /// <summary>
-/// Скрипт для управления падающей фигурой (как в Тетрисе).
-/// Фигура падает, и при фиксации её тайлы добавляются в сетку.
-/// Каждый тайл фигуры получает свой случайный цвет, причем соседние тайлы не будут иметь больше двух одинаковых цветов подряд.
+/// Управляет падающей фигурой, как в Тетрисе.
+/// После того, как фигура не может дальше падать, её тайлы фиксируются в сетке,
+/// затем вызывается проверка совпадений, запускается гравитация и спавнится новая фигура.
+/// Каждая фигура получает один случайный цвет для всех своих тайлов, 
+/// выбранный из набора ровно из 4 цветов, при этом алгоритм пытается, чтобы соседние тайлы в фигуре не имели одинаковый цвет более двух раз подряд.
+/// Реализована также возможность hard drop по пробелу.
 /// </summary>
 public class Piece : MonoBehaviour
 {
-    public float fallTime = 1.0f; // Интервал падения фигуры
+    public float fallTime = 1.0f; // Интервал автоматического падения
     private float fallTimer = 0f;
 
-    // Размер одного тайла (если спрайт 256×256 с Pixels Per Unit = 256, blockSize = 1)
+    // Размер одного тайла (при использовании спрайта 256×256 с Pixels Per Unit = 256, blockSize = 1)
     public float blockSize = 1f;
 
-    // Массив доступных цветов (4 цвета)
+    // Массив доступных цветов (ровно 4 цвета)
     public Color[] availableColors = new Color[] { Color.red, Color.blue, Color.green, Color.yellow };
 
     private Board board;
@@ -23,40 +26,39 @@ public class Piece : MonoBehaviour
     {
         board = FindObjectOfType<Board>();
 
-        // Получаем список тайлов (дочерних объектов) фигуры (исключая сам родительский объект)
-        Transform[] allTransforms = GetComponentsInChildren<Transform>();
+        // Получаем список всех дочерних тайлов (исключая корневой объект фигуры)
+        Transform[] allChildren = GetComponentsInChildren<Transform>();
         List<Transform> tiles = new List<Transform>();
-        foreach (Transform t in allTransforms)
+        foreach (Transform t in allChildren)
         {
             if (t != transform)
                 tiles.Add(t);
         }
-
-        // Сортируем тайлы по локальным координатам: сначала по Y, затем по X
-        tiles.Sort((a, b) => {
+        // Сортируем тайлы по локальным координатам (сначала по Y, затем по X)
+        tiles.Sort((a, b) =>
+        {
             if (a.localPosition.y != b.localPosition.y)
                 return a.localPosition.y.CompareTo(b.localPosition.y);
             return a.localPosition.x.CompareTo(b.localPosition.x);
         });
 
-        // Назначаем цвет каждому тайлу, учитывая уже обработанные соседние тайлы
+        // Назначаем цвет каждому тайлу с учетом того, чтобы соседние тайлы не имели более двух одинаковых цветов подряд.
+        // Для этого, для каждого тайла, смотрим уже обработанных соседей (по локальным координатам, где расстояние равно blockSize)
         for (int i = 0; i < tiles.Count; i++)
         {
             Transform tile = tiles[i];
-            // Собираем цвета уже обработанных соседей (только тех, которые уже назначены)
             List<Color> neighborColors = new List<Color>();
             for (int j = 0; j < i; j++)
             {
                 Transform other = tiles[j];
-                if (IsNeighbor(tile, other))
+                if (AreNeighbors(tile, other))
                 {
                     SpriteRenderer srOther = other.GetComponent<SpriteRenderer>();
                     if (srOther != null)
                         neighborColors.Add(srOther.color);
                 }
             }
-
-            // Подсчитываем, сколько раз каждый цвет встречается среди соседей
+            // Подсчитываем количество вхождений каждого цвета среди соседей
             Dictionary<Color, int> colorFreq = new Dictionary<Color, int>();
             foreach (Color col in availableColors)
                 colorFreq[col] = 0;
@@ -65,24 +67,19 @@ public class Piece : MonoBehaviour
                 if (colorFreq.ContainsKey(col))
                     colorFreq[col]++;
             }
-
-            // Формируем список кандидатных цветов: разрешаем цвет, если он встречается меньше 2 раз
+            // Формируем список кандидатов: разрешаем тот цвет, который встречается меньше 2 раз
             List<Color> candidates = new List<Color>();
             foreach (Color col in availableColors)
             {
                 if (colorFreq[col] < 2)
                     candidates.Add(col);
             }
-
             Color chosen;
             if (candidates.Count > 0)
-            {
-                // Выбираем случайный цвет из кандидатов
                 chosen = candidates[Random.Range(0, candidates.Count)];
-            }
             else
             {
-                // Если нет кандидатов, выбираем цвет с минимальным числом повторений
+                // Если кандидатов нет, выбираем цвет с минимальной частотой
                 int minCount = int.MaxValue;
                 chosen = availableColors[0];
                 foreach (Color col in availableColors)
@@ -94,18 +91,15 @@ public class Piece : MonoBehaviour
                     }
                 }
             }
-
             // Назначаем выбранный цвет тайлу
             SpriteRenderer sr = tile.GetComponent<SpriteRenderer>();
             if (sr != null)
-            {
                 sr.color = chosen;
-            }
         }
     }
 
-    // Метод для проверки, являются ли два тайла соседями (по горизонтали или вертикали)
-    bool IsNeighbor(Transform a, Transform b)
+    // Метод для проверки, являются ли два тайла соседями (по горизонтали или вертикали) в фигуре
+    bool AreNeighbors(Transform a, Transform b)
     {
         Vector2 posA = a.localPosition;
         Vector2 posB = b.localPosition;
@@ -137,7 +131,7 @@ public class Piece : MonoBehaviour
             if (!IsValidPosition())
                 transform.Rotate(0, 0, 90);
         }
-        // Hard drop по пробелу
+        // Hard drop (мгновенное опускание) по пробелу
         if (Input.GetKeyDown(KeyCode.Space))
         {
             while (IsValidPosition())
@@ -168,10 +162,10 @@ public class Piece : MonoBehaviour
     }
 
     /// <summary>
-    /// Проверяет, что каждый тайл (нижний левый угол каждого тайла) находится внутри поля.
+    /// Проверяет, что каждый тайл (позиция тайла – его нижний левый угол) находится внутри поля.
     /// Допустимые X: от 0 до Board.width - blockSize.
-    /// Допустимые Y: >= board.bottomOffset.
-    /// Также проверяется, что соответствующая ячейка сетки не занята.
+    /// Допустимые Y: должны быть >= board.bottomOffset.
+    /// Также проверяется, что соответствующая ячейка в сетке не занята.
     /// </summary>
     bool IsValidPosition()
     {
@@ -182,9 +176,9 @@ public class Piece : MonoBehaviour
                 return false;
             if (pos.y < board.bottomOffset)
                 return false;
-            if (pos.y < Board.height + board.bottomOffset)
+            if (pos.y < board.bottomOffset + board.grid.GetLength(1))
             {
-                int gridY = Mathf.RoundToInt(pos.y) - board.bottomOffset;
+                int gridY = Mathf.FloorToInt(pos.y) - board.bottomOffset;
                 if (board.grid[(int)pos.x, gridY] != null)
                     return false;
             }
@@ -194,15 +188,15 @@ public class Piece : MonoBehaviour
 
     /// <summary>
     /// Фиксирует все тайлы фигуры в сетке.
-    /// При добавлении индекс строки = worldY - board.bottomOffset.
+    /// При добавлении индекс строки вычисляется как (worldY - board.bottomOffset).
     /// </summary>
     void AddToBoard()
     {
         foreach (Transform child in transform)
         {
             Vector2 pos = board.Round(child.position);
-            int x = Mathf.RoundToInt(pos.x);
-            int y = Mathf.RoundToInt(pos.y) - board.bottomOffset;
+            int x = Mathf.FloorToInt(pos.x);
+            int y = Mathf.FloorToInt(pos.y) - board.bottomOffset;
             if (x >= 0 && x < Board.width && y >= 0 && y < board.grid.GetLength(1))
                 board.grid[x, y] = child;
         }
