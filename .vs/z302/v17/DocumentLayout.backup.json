@@ -11,19 +11,19 @@
       "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\board.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|E:\\Unity\\z302\\assets\\scripts\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\boardoutline.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|E:\\Unity\\z302\\assets\\scripts\\boardoutline.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\boardoutline.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\tile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|E:\\Unity\\z302\\assets\\scripts\\tile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\tile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\camerafitboard.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|E:\\Unity\\z302\\assets\\scripts\\camerafitboard.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\camerafitboard.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
@@ -46,8 +46,7 @@
               "RelativeToolTip": "Assets\\Scripts\\Tile.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-15T14:16:40.402Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-15T14:16:40.402Z"
             },
             {
               "$type": "Document",
@@ -59,8 +58,7 @@
               "RelativeToolTip": "Assets\\Scripts\\GameManager.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-15T14:16:26.475Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-15T14:16:26.475Z"
             },
             {
               "$type": "Document",
@@ -70,7 +68,7 @@
               "RelativeDocumentMoniker": "Assets\\Scripts\\Piece.cs",
               "ToolTip": "E:\\Unity\\z302\\Assets\\Scripts\\Piece.cs",
               "RelativeToolTip": "Assets\\Scripts\\Piece.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAE4AAAAFAAAAAAAAAA==",
+              "ViewState": "AgIAAFQAAAAAAAAAAAA2wHoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-02-15T13:53:16.925Z",
               "EditorCaption": ""
@@ -85,8 +83,7 @@
               "RelativeToolTip": "Assets\\Scripts\\BoardOutline.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAC8AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-15T13:03:34.637Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-15T13:03:34.637Z"
             },
             {
               "$type": "Document",
@@ -98,8 +95,7 @@
               "RelativeToolTip": "Assets\\Scripts\\CameraFitBoard.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAACcAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-15T13:02:31.011Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-15T13:02:31.011Z"
             },
             {
               "$type": "Document",
@@ -111,8 +107,7 @@
               "RelativeToolTip": "Assets\\Scripts\\Board.cs",
               "ViewState": "AgIAAE8AAAAAAAAAAAAUwIYAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-15T12:55:06.433Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-15T12:55:06.433Z"
             }
           ]
         }
