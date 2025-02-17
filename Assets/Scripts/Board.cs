@@ -3,30 +3,31 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Управляет игровым полем. Внутренняя сетка имеет размеры width x (height + extraRows).
+/// Управляет игровым полем.
+/// Сетка имеет размеры width x (height + extraRows).
 /// Дно поля поднято на bottomOffset единиц – допустимые мировые Y начинаются с bottomOffset.
-/// При фиксации тайлов в сетке индекс строки вычисляется как (worldY - bottomOffset).
-/// Реализованы совпадения (3+ подряд тайлов одного цвета) и гравитация для связных групп.
+/// При фиксации тайлов индекс строки = (worldY - bottomOffset).
+/// Реализована логика совпадений (3+ подряд тайлов одного цвета) и гравитация связных групп.
 /// </summary>
 public class Board : MonoBehaviour
 {
-    public static int width = 12;       // Число столбцов
-    public static int height = 24;      // Число видимых строк
+    public static int width = 12;      // Число столбцов
+    public static int height = 24;     // Число видимых строк
 
-    public int extraRows = 4;           // Дополнительные строки (для висящих тайлов)
-    public int bottomOffset = 1;        // Подъём дна (допустимые Y ≥ bottomOffset)
+    public int extraRows = 4;          // Дополнительные строки (для «висящих» тайлов)
+    public int bottomOffset = 1;       // Подъём дна поля (допустимые Y ≥ bottomOffset)
 
     // Полная высота сетки = height + extraRows
     public Transform[,] grid;
 
     void Awake()
     {
+        // Создаём сетку, где height + extraRows – общее число строк
         grid = new Transform[width, height + extraRows];
     }
 
     /// <summary>
-    /// Возвращает координаты ячейки для данной мировой позиции.
-    /// При pivot = (0.5, 0.5) вычисляем как Floor(pos + 0.5).
+    /// Для спрайтов с pivot = (0.5, 0.5) координата ячейки вычисляется как Floor(pos + 0.5).
     /// </summary>
     public Vector2 GetCellCoordinates(Vector2 pos)
     {
@@ -35,7 +36,7 @@ public class Board : MonoBehaviour
 
     /// <summary>
     /// Проверяет, находится ли мировая позиция pos внутри сетки.
-    /// Допустимые X: от 0 до width - 1; Y: от bottomOffset до bottomOffset + gridHeight - 1.
+    /// Допустимые X: 0..width-1; Y: от bottomOffset до bottomOffset + gridHeight - 1.
     /// </summary>
     public bool IsInsideGrid(Vector2 pos)
     {
@@ -60,7 +61,7 @@ public class Board : MonoBehaviour
     /// <summary>
     /// Проверяет совпадения по горизонтали и вертикали для всей сетки.
     /// Удаляются только группы, где 3 и более подряд тайлов имеют один и тот же цвет.
-    /// После удаления запускается гравитация, а через задержку повторно проверяются совпадения.
+    /// После удаления запускается гравитация (FillEmptySpaces), затем повторная проверка совпадений.
     /// </summary>
     public void CheckMatches()
     {
@@ -89,10 +90,8 @@ public class Board : MonoBehaviour
                     if (matchH.Count >= 3)
                     {
                         foreach (Transform t in matchH)
-                        {
                             if (!tilesToRemove.Contains(t))
                                 tilesToRemove.Add(t);
-                        }
                     }
 
                     // Вертикальная проверка
@@ -108,10 +107,8 @@ public class Board : MonoBehaviour
                     if (matchV.Count >= 3)
                     {
                         foreach (Transform t in matchV)
-                        {
                             if (!tilesToRemove.Contains(t))
                                 tilesToRemove.Add(t);
-                        }
                     }
                 }
             }
@@ -128,7 +125,9 @@ public class Board : MonoBehaviour
                     grid[x, y] = null;
                 Destroy(t.gameObject);
             }
+            // Запускаем гравитацию
             StartCoroutine(FillEmptySpaces());
+            // Через небольшую задержку повторяем проверку совпадений
             Invoke("DelayedCheckMatches", 0.2f);
         }
     }
@@ -139,8 +138,10 @@ public class Board : MonoBehaviour
     }
 
     /// <summary>
-    /// Гравитация: опускает тайлы (или связные группы) вниз, пока под ними пусто.
-    /// Группа опускается, если для всех ячеек непосредственно под ней пусто.
+    /// Гравитация с помощью BFS:
+    /// Ищем связные группы тайлов (flood fill), проверяем, может ли вся группа опуститься на 1.
+    /// Если да – опускаем, и повторяем, пока что-нибудь двигается.
+    /// Таким образом, блоки не «висят» в воздухе.
     /// </summary>
     public IEnumerator FillEmptySpaces()
     {
@@ -148,29 +149,85 @@ public class Board : MonoBehaviour
         do
         {
             moved = false;
+            bool[,] visited = new bool[width, grid.GetLength(1)];
+
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < grid.GetLength(1); y++)
                 {
-                    if (grid[x, y] == null)
+                    if (!visited[x, y] && grid[x, y] != null)
                     {
-                        for (int k = y + 1; k < grid.GetLength(1); k++)
+                        // Находим связную группу
+                        List<Vector2Int> group = new List<Vector2Int>();
+                        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+                        queue.Enqueue(new Vector2Int(x, y));
+                        visited[x, y] = true;
+
+                        while (queue.Count > 0)
                         {
-                            if (grid[x, k] != null)
+                            Vector2Int cell = queue.Dequeue();
+                            group.Add(cell);
+                            // Смотрим соседей
+                            Vector2Int[] neighbors = new Vector2Int[]
                             {
-                                grid[x, y] = grid[x, k];
-                                grid[x, k] = null;
-                                grid[x, y].position = new Vector2(x, k - 1 + bottomOffset);
-                                moved = true;
+                                new Vector2Int(cell.x+1, cell.y),
+                                new Vector2Int(cell.x-1, cell.y),
+                                new Vector2Int(cell.x, cell.y+1),
+                                new Vector2Int(cell.x, cell.y-1)
+                            };
+                            foreach (Vector2Int nb in neighbors)
+                            {
+                                if (nb.x >= 0 && nb.x < width && nb.y >= 0 && nb.y < grid.GetLength(1))
+                                {
+                                    if (!visited[nb.x, nb.y] && grid[nb.x, nb.y] != null)
+                                    {
+                                        visited[nb.x, nb.y] = true;
+                                        queue.Enqueue(nb);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Проверяем, может ли группа опуститься на 1
+                        bool canFall = true;
+                        foreach (Vector2Int cell in group)
+                        {
+                            // Если в нижнем ряду – упасть нельзя
+                            if (cell.y == 0)
+                            {
+                                canFall = false;
                                 break;
                             }
+                            // Если клетка ниже не пуста и не входит в ту же группу – упасть нельзя
+                            if (grid[cell.x, cell.y - 1] != null && !group.Contains(new Vector2Int(cell.x, cell.y - 1)))
+                            {
+                                canFall = false;
+                                break;
+                            }
+                        }
+
+                        if (canFall)
+                        {
+                            // Сортируем группу по возрастанию Y, чтобы опускать снизу вверх
+                            group.Sort((a, b) => a.y.CompareTo(b.y));
+                            foreach (Vector2Int cell in group)
+                            {
+                                Transform t = grid[cell.x, cell.y];
+                                grid[cell.x, cell.y] = null;
+                                grid[cell.x, cell.y - 1] = t;
+                                t.position = new Vector2(cell.x, (cell.y - 1) + bottomOffset);
+                            }
+                            moved = true;
                         }
                     }
                 }
             }
+
             if (moved)
                 yield return new WaitForSeconds(0.1f);
-        } while (moved);
+        }
+        while (moved);
+
         yield break;
     }
 }
