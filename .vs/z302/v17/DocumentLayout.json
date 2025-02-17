@@ -3,11 +3,11 @@
   "WorkspaceRootPath": "E:\\Unity\\z302\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|E:\\Unity\\z302\\assets\\scripts\\board.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\board.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\board.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|e:\\unity\\z302\\assets\\scripts\\piece.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|E:\\Unity\\z302\\assets\\scripts\\piece.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{55A7577A-4D4F-5C19-5F6D-AD32184594A8}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\piece.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
@@ -42,8 +42,7 @@
               "RelativeToolTip": "Assets\\Scripts\\GameManager.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-15T14:16:26.475Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-15T14:16:26.475Z"
             },
             {
               "$type": "Document",
@@ -55,8 +54,7 @@
               "RelativeToolTip": "Assets\\Scripts\\Piece.cs",
               "ViewState": "AgIAANgAAAAAAAAAAAAiwOkAAAA6AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-15T13:53:16.925Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-15T13:53:16.925Z"
             },
             {
               "$type": "Document",
@@ -90,7 +88,7 @@
               "RelativeDocumentMoniker": "Assets\\Scripts\\Board.cs",
               "ToolTip": "E:\\Unity\\z302\\Assets\\Scripts\\Board.cs",
               "RelativeToolTip": "Assets\\Scripts\\Board.cs",
-              "ViewState": "AgIAALIAAAAAAAAAAAAUwOkAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAOIAAAAAAAAAAAAUwAoBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-02-15T12:55:06.433Z",
               "EditorCaption": ""

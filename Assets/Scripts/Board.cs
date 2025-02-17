@@ -143,6 +143,10 @@ public class Board : MonoBehaviour
     /// Если да – опускаем, и повторяем, пока что-нибудь двигается.
     /// Таким образом, блоки не «висят» в воздухе.
     /// </summary>
+    /// <summary>
+    /// Гравитация: каждая связная группа тайлов падает максимально вниз за один шаг.
+    /// Если после удаления совпадений тайлы "висят в воздухе", они упадут до нижнего препятствия.
+    /// </summary>
     public IEnumerator FillEmptySpaces()
     {
         bool moved;
@@ -157,7 +161,7 @@ public class Board : MonoBehaviour
                 {
                     if (!visited[x, y] && grid[x, y] != null)
                     {
-                        // Находим связную группу
+                        // Находим связную группу BFS
                         List<Vector2Int> group = new List<Vector2Int>();
                         Queue<Vector2Int> queue = new Queue<Vector2Int>();
                         queue.Enqueue(new Vector2Int(x, y));
@@ -167,13 +171,12 @@ public class Board : MonoBehaviour
                         {
                             Vector2Int cell = queue.Dequeue();
                             group.Add(cell);
-                            // Смотрим соседей
                             Vector2Int[] neighbors = new Vector2Int[]
                             {
-                                new Vector2Int(cell.x+1, cell.y),
-                                new Vector2Int(cell.x-1, cell.y),
-                                new Vector2Int(cell.x, cell.y+1),
-                                new Vector2Int(cell.x, cell.y-1)
+                            new Vector2Int(cell.x+1, cell.y),
+                            new Vector2Int(cell.x-1, cell.y),
+                            new Vector2Int(cell.x, cell.y+1),
+                            new Vector2Int(cell.x, cell.y-1)
                             };
                             foreach (Vector2Int nb in neighbors)
                             {
@@ -188,36 +191,67 @@ public class Board : MonoBehaviour
                             }
                         }
 
-                        // Проверяем, может ли группа опуститься на 1
-                        bool canFall = true;
+                        // Находим максимальное расстояние, на которое группа может упасть
+                        int maxFall = int.MaxValue;
+                        // Сохраняем тайлы во временный словарь, чтобы не потерять Transform после очистки
+                        Dictionary<Vector2Int, Transform> tileMap = new Dictionary<Vector2Int, Transform>();
                         foreach (Vector2Int cell in group)
                         {
-                            // Если в нижнем ряду – упасть нельзя
-                            if (cell.y == 0)
-                            {
-                                canFall = false;
-                                break;
-                            }
-                            // Если клетка ниже не пуста и не входит в ту же группу – упасть нельзя
-                            if (grid[cell.x, cell.y - 1] != null && !group.Contains(new Vector2Int(cell.x, cell.y - 1)))
-                            {
-                                canFall = false;
-                                break;
-                            }
+                            tileMap[cell] = grid[cell.x, cell.y];
                         }
 
-                        if (canFall)
+                        // Очищаем старые ячейки в grid
+                        foreach (Vector2Int cell in group)
                         {
-                            // Сортируем группу по возрастанию Y, чтобы опускать снизу вверх
+                            grid[cell.x, cell.y] = null;
+                        }
+
+                        // Вычисляем расстояние падения
+                        foreach (Vector2Int cell in group)
+                        {
+                            int dist = 0;
+                            int checkY = cell.y - 1;
+                            while (checkY >= 0)
+                            {
+                                // Если клетка ниже пуста или входит в ту же группу, можно упасть дальше
+                                if (grid[cell.x, checkY] == null || group.Contains(new Vector2Int(cell.x, checkY)))
+                                {
+                                    dist++;
+                                    checkY--;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                            if (dist < maxFall)
+                                maxFall = dist;
+                            if (maxFall == 0)
+                                break;
+                        }
+
+                        if (maxFall > 0 && maxFall != int.MaxValue)
+                        {
+                            // Двигаем группу вниз на maxFall
+                            moved = true;
+                            // Сортируем группу по возрастанию y (снизу вверх)
                             group.Sort((a, b) => a.y.CompareTo(b.y));
                             foreach (Vector2Int cell in group)
                             {
-                                Transform t = grid[cell.x, cell.y];
-                                grid[cell.x, cell.y] = null;
-                                grid[cell.x, cell.y - 1] = t;
-                                t.position = new Vector2(cell.x, (cell.y - 1) + bottomOffset);
+                                Vector2Int newCell = new Vector2Int(cell.x, cell.y - maxFall);
+                                Transform t = tileMap[cell];
+                                grid[newCell.x, newCell.y] = t;
+                                // Обновляем мировую позицию
+                                t.position = new Vector2(newCell.x, newCell.y + bottomOffset);
                             }
-                            moved = true;
+                        }
+                        else
+                        {
+                            // Если упасть нельзя, просто возвращаем группу на место
+                            foreach (Vector2Int cell in group)
+                            {
+                                grid[cell.x, cell.y] = tileMap[cell];
+                            }
                         }
                     }
                 }
@@ -225,9 +259,10 @@ public class Board : MonoBehaviour
 
             if (moved)
                 yield return new WaitForSeconds(0.1f);
-        }
-        while (moved);
+
+        } while (moved);
 
         yield break;
     }
+
 }
