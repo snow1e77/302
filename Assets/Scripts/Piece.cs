@@ -4,24 +4,22 @@ using System.Collections.Generic;
 /// <summary>
 /// Управляет падающей фигурой (как в Тетрисе).
 /// Когда фигура не может дальше опускаться, её тайлы фиксируются в сетке,
-/// запускается проверка совпадений, гравитация и спавнится новая фигура.
-/// Для обычных фигур каждый тайл получает свой случайный цвет из набора 4 цветов,
-/// а для I-фигуры все тайлы получают один случайный цвет.
+/// затем запускается проверка совпадений, гравитация и спавнится новая фигура.
+/// Каждая фигура состоит из разноцветных тайлов – каждому тайлу присваивается свой случайный цвет из набора ровно из 4 цветов.
 /// Реализованы hard drop (по пробелу) и wall kicks при повороте.
-/// Wall kick для I-фигуры: если после поворота у правой границы нет места,
-/// фигура пробует сместиться на два блока влево.
-/// Поскольку pivot фигуры находится в центре, для вычисления ячеек используется GetCellCoordinates.
+/// Поскольку pivot фигуры находится в центре, используется GetCellCoordinates для вычисления ячеек.
 /// </summary>
 public class Piece : MonoBehaviour
 {
-    public float fallTime = 1.0f;
+    public float fallTime = 1.0f; // Интервал автоматического падения
     private float fallTimer = 0f;
-    private bool _hasLanded = false;
+    private bool _hasLanded = false;  // Флаг, предотвращающий двойной спавн
 
-    public float blockSize = 1f;
+    public float blockSize = 1f;  // Размер одного тайла (1×1)
+    // Массив доступных цветов (ровно 4 цвета)
     public Color[] availableColors = new Color[] { Color.red, Color.blue, Color.green, Color.yellow };
 
-    // Флаг, указывающий, что фигура имеет форму I. Для I-фигуры isIShape = true (задаётся в инспекторе).
+    // Флаг для I-фигуры (специальные wall kick offset'ы), но теперь для разноцветности он не влияет на назначение цветов
     public bool isIShape = false;
 
     private Board board;
@@ -29,28 +27,18 @@ public class Piece : MonoBehaviour
     void Start()
     {
         board = FindObjectOfType<Board>();
-        if (!isIShape)
-        {
-            AssignTileColors();
-        }
-        else
-        {
-            Color pieceColor = availableColors[Random.Range(0, availableColors.Length)];
-            foreach (Transform child in transform)
-            {
-                SpriteRenderer sr = child.GetComponent<SpriteRenderer>();
-                if (sr != null)
-                    sr.color = pieceColor;
-            }
-        }
+        // Всегда назначаем разноцветные тайлы для всей фигуры, даже для I-фигуры
+        AssignTileColors();
     }
 
     /// <summary>
     /// Назначает каждому тайлу внутри фигуры свой случайный цвет.
-    /// Если тайлов меньше или равно 4, все цвета уникальны; если больше, для оставшихся выбирается случайный цвет.
+    /// Алгоритм сортирует тайлы по локальным координатам и присваивает цвета из набора availableColors.
+    /// Если тайлов больше, чем цветов, оставшиеся тайлы получают случайный цвет.
     /// </summary>
     void AssignTileColors()
     {
+        // Получаем список дочерних тайлов (исключая корневой объект фигуры)
         Transform[] children = GetComponentsInChildren<Transform>();
         List<Transform> tiles = new List<Transform>();
         foreach (Transform t in children)
@@ -58,15 +46,18 @@ public class Piece : MonoBehaviour
             if (t != transform)
                 tiles.Add(t);
         }
+        // Сортируем тайлы по локальным координатам: сначала по Y, затем по X
         tiles.Sort((a, b) =>
         {
             if (a.localPosition.y != b.localPosition.y)
                 return a.localPosition.y.CompareTo(b.localPosition.y);
             return a.localPosition.x.CompareTo(b.localPosition.x);
         });
+
         List<Color> colorsToAssign = new List<Color>();
         if (tiles.Count <= availableColors.Length)
         {
+            // Если тайлов меньше или равно 4, перемешиваем и присваиваем уникальные цвета
             List<Color> shuffled = new List<Color>(availableColors);
             for (int i = 0; i < shuffled.Count; i++)
             {
@@ -80,11 +71,22 @@ public class Piece : MonoBehaviour
         }
         else
         {
+            // Если тайлов больше, первые 4 получают уникальные цвета, а остальные – случайные
+            List<Color> shuffled = new List<Color>(availableColors);
+            for (int i = 0; i < shuffled.Count; i++)
+            {
+                int r = Random.Range(i, shuffled.Count);
+                Color temp = shuffled[i];
+                shuffled[i] = shuffled[r];
+                shuffled[r] = temp;
+            }
             for (int i = 0; i < availableColors.Length; i++)
-                colorsToAssign.Add(availableColors[i]);
+                colorsToAssign.Add(shuffled[i]);
             for (int i = availableColors.Length; i < tiles.Count; i++)
                 colorsToAssign.Add(availableColors[Random.Range(0, availableColors.Length)]);
         }
+
+        // Назначаем цвета тайлам
         for (int i = 0; i < tiles.Count; i++)
         {
             SpriteRenderer sr = tiles[i].GetComponent<SpriteRenderer>();
@@ -125,23 +127,26 @@ public class Piece : MonoBehaviour
                 Vector3[] kicks;
                 if (isIShape)
                 {
-                    // Для I-фигуры: если у правой границы нет места, пробуем смещение на два блока влево
                     kicks = new Vector3[]
                     {
-                        new Vector3(0,0,0),
-                        new Vector3(1,0,0),
-                        new Vector3(-2,0,0)  // смещение на 2 блока влево
+                        new Vector3(0, 0, 0),
+                        new Vector3(1, 0, 0),
+                        new Vector3(-1, 0, 0),
+                        new Vector3(2, 0, 0),
+                        new Vector3(-2, 0, 0),
+                        new Vector3(0, 1, 0),
+                        new Vector3(0, -1, 0)
                     };
                 }
                 else
                 {
                     kicks = new Vector3[]
                     {
-                        new Vector3(0,0,0),
-                        new Vector3(1,0,0),
-                        new Vector3(-1,0,0),
-                        new Vector3(0,1,0),
-                        new Vector3(0,-1,0)
+                        new Vector3(0, 0, 0),
+                        new Vector3(1, 0, 0),
+                        new Vector3(-1, 0, 0),
+                        new Vector3(0, 1, 0),
+                        new Vector3(0, -1, 0)
                     };
                 }
                 bool validKick = false;
@@ -190,7 +195,7 @@ public class Piece : MonoBehaviour
     }
 
     /// <summary>
-    /// Приводит позицию фигуры к целым числам, чтобы избежать дробных значений.
+    /// Округляет позицию фигуры до ближайших целых чисел, чтобы избежать дробных значений.
     /// </summary>
     void SnapPosition()
     {
@@ -198,7 +203,7 @@ public class Piece : MonoBehaviour
     }
 
     /// <summary>
-    /// Получает координаты ячейки для позиции, учитывая, что pivot = (0.5,0.5).
+    /// Получает координаты ячейки для позиции, учитывая, что pivot = (0.5, 0.5).
     /// Вычисляется как Floor(pos + 0.5).
     /// </summary>
     Vector2 GetCellCoordinates(Vector2 pos)
@@ -208,7 +213,8 @@ public class Piece : MonoBehaviour
 
     /// <summary>
     /// Проверяет, что каждый тайл фигуры (его ячейка) находится внутри поля.
-    /// Допустимые X: от 0 до Board.width - 1; Y: >= board.bottomOffset.
+    /// Допустимые X: 0 ... Board.width - 1.
+    /// Допустимые Y: >= board.bottomOffset.
     /// Также проверяется, что соответствующая ячейка в сетке не занята.
     /// </summary>
     bool IsValidPosition()
@@ -247,7 +253,7 @@ public class Piece : MonoBehaviour
 
     /// <summary>
     /// Фиксирует все тайлы фигуры в сетке.
-    /// Индекс строки = (cell.y - board.bottomOffset).
+    /// Индекс строки вычисляется как (cell.y - board.bottomOffset).
     /// </summary>
     void AddToBoard()
     {
