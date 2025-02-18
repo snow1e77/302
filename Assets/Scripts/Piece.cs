@@ -3,42 +3,43 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Управляет падающей фигурой (как в Тетрисе).
-/// Когда фигура не может дальше опускаться, её тайлы фиксируются в сетке,
-/// затем запускается проверка совпадений, гравитация и спавнится новая фигура.
-/// Каждая фигура состоит из разноцветных тайлов – каждому тайлу присваивается свой случайный цвет из набора ровно из 4 цветов.
+/// При фиксации фигуры её тайлы добавляются в сетку, затем запускается проверка совпадений и гравитация,
+/// после чего спавнится новая фигура.
+/// Каждая фигура состоит из разноцветных тайлов – для обычных фигур каждому тайлу назначается свой цвет,
+/// для I-фигуры все тайлы получают один случайный цвет (если нужно можно изменить логику).
 /// Реализованы hard drop (по пробелу) и wall kicks при повороте.
-/// Поскольку pivot фигуры находится в центре, используется GetCellCoordinates для вычисления ячеек.
+/// Добавлена тенёвая фигура (ghost piece), которая показывает, куда опустится фигура при hard drop.
 /// </summary>
 public class Piece : MonoBehaviour
 {
     public float fallTime = 1.0f; // Интервал автоматического падения
     private float fallTimer = 0f;
-    private bool _hasLanded = false;  // Флаг, предотвращающий двойной спавн
+    private bool _hasLanded = false;
 
     public float blockSize = 1f;  // Размер одного тайла (1×1)
-    // Массив доступных цветов (ровно 4 цвета)
     public Color[] availableColors = new Color[] { Color.red, Color.blue, Color.green, Color.yellow };
 
-    // Флаг для I-фигуры (специальные wall kick offset'ы), но теперь для разноцветности он не влияет на назначение цветов
+    // Флаг для I-фигуры (специальные wall kick offset'ы)
     public bool isIShape = false;
 
     private Board board;
+    private GameObject ghostPiece; // Теневой объект
 
     void Start()
     {
         board = FindObjectOfType<Board>();
-        // Всегда назначаем разноцветные тайлы для всей фигуры, даже для I-фигуры
+        // Назначаем разноцветные тайлы для фигуры
         AssignTileColors();
+        CreateGhostPiece();
     }
 
     /// <summary>
     /// Назначает каждому тайлу внутри фигуры свой случайный цвет.
-    /// Алгоритм сортирует тайлы по локальным координатам и присваивает цвета из набора availableColors.
-    /// Если тайлов больше, чем цветов, оставшиеся тайлы получают случайный цвет.
+    /// Если количество тайлов меньше или равно числу доступных цветов – каждому назначается уникальный цвет,
+    /// иначе первые получают уникальные, а оставшиеся – случайный цвет.
     /// </summary>
     void AssignTileColors()
     {
-        // Получаем список дочерних тайлов (исключая корневой объект фигуры)
         Transform[] children = GetComponentsInChildren<Transform>();
         List<Transform> tiles = new List<Transform>();
         foreach (Transform t in children)
@@ -46,18 +47,11 @@ public class Piece : MonoBehaviour
             if (t != transform)
                 tiles.Add(t);
         }
-        // Сортируем тайлы по локальным координатам: сначала по Y, затем по X
-        tiles.Sort((a, b) =>
-        {
-            if (a.localPosition.y != b.localPosition.y)
-                return a.localPosition.y.CompareTo(b.localPosition.y);
-            return a.localPosition.x.CompareTo(b.localPosition.x);
-        });
 
+        int n = tiles.Count;
         List<Color> colorsToAssign = new List<Color>();
-        if (tiles.Count <= availableColors.Length)
+        if (n <= availableColors.Length)
         {
-            // Если тайлов меньше или равно 4, перемешиваем и присваиваем уникальные цвета
             List<Color> shuffled = new List<Color>(availableColors);
             for (int i = 0; i < shuffled.Count; i++)
             {
@@ -66,12 +60,11 @@ public class Piece : MonoBehaviour
                 shuffled[i] = shuffled[r];
                 shuffled[r] = temp;
             }
-            for (int i = 0; i < tiles.Count; i++)
+            for (int i = 0; i < n; i++)
                 colorsToAssign.Add(shuffled[i]);
         }
         else
         {
-            // Если тайлов больше, первые 4 получают уникальные цвета, а остальные – случайные
             List<Color> shuffled = new List<Color>(availableColors);
             for (int i = 0; i < shuffled.Count; i++)
             {
@@ -82,11 +75,18 @@ public class Piece : MonoBehaviour
             }
             for (int i = 0; i < availableColors.Length; i++)
                 colorsToAssign.Add(shuffled[i]);
-            for (int i = availableColors.Length; i < tiles.Count; i++)
+            for (int i = availableColors.Length; i < n; i++)
                 colorsToAssign.Add(availableColors[Random.Range(0, availableColors.Length)]);
         }
 
-        // Назначаем цвета тайлам
+        // Назначаем цвета тайлам в порядке сортировки по локальной позиции (сначала по Y, затем по X)
+        tiles.Sort((a, b) =>
+        {
+            if (a.localPosition.y != b.localPosition.y)
+                return a.localPosition.y.CompareTo(b.localPosition.y);
+            return a.localPosition.x.CompareTo(b.localPosition.x);
+        });
+
         for (int i = 0; i < tiles.Count; i++)
         {
             SpriteRenderer sr = tiles[i].GetComponent<SpriteRenderer>();
@@ -95,12 +95,63 @@ public class Piece : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Создает теневую фигуру (ghost piece), которая копирует текущую фигуру,
+    /// делает её прозрачной и обновляет ее позицию до конечного положения hard drop.
+    /// </summary>
+    void CreateGhostPiece()
+    {
+        ghostPiece = Instantiate(gameObject, transform.position, transform.rotation);
+        // Удаляем компонент Piece из ghost
+        Destroy(ghostPiece.GetComponent<Piece>());
+        // Обходим все SpriteRenderer в ghost и уменьшаем альфа-канал
+        SpriteRenderer[] srList = ghostPiece.GetComponentsInChildren<SpriteRenderer>();
+        foreach (SpriteRenderer sr in srList)
+        {
+            Color c = sr.color;
+            c.a = 0.3f;
+            sr.color = c;
+        }
+    }
+
+    /// <summary>
+    /// Обновляет позицию теневой фигуры, вычисляя hard drop позицию.
+    /// </summary>
+    void UpdateGhost()
+    {
+        if (ghostPiece == null)
+            return;
+        Vector3 ghostPos = transform.position;
+        // Клонируем позицию и опускаем до тех пор, пока положение допустимо
+        while (IsValidPositionAt(ghostPos + Vector3.down))
+        {
+            ghostPos += Vector3.down;
+        }
+        ghostPos += Vector3.up;
+        ghostPiece.transform.position = ghostPos;
+        ghostPiece.transform.rotation = transform.rotation;
+    }
+
+    /// <summary>
+    /// Проверка позиции pos (без смещения объекта).
+    /// </summary>
+    bool IsValidPositionAt(Vector3 pos)
+    {
+        Vector3 original = transform.position;
+        transform.position = pos;
+        bool valid = IsValidPosition();
+        transform.position = original;
+        return valid;
+    }
+
     void Update()
     {
         if (_hasLanded)
             return;
 
         SnapPosition();
+
+        UpdateGhost();
 
         // Перемещение влево
         if (Input.GetKeyDown(KeyCode.LeftArrow))
@@ -129,24 +180,24 @@ public class Piece : MonoBehaviour
                 {
                     kicks = new Vector3[]
                     {
-                        new Vector3(0, 0, 0),
-                        new Vector3(1, 0, 0),
-                        new Vector3(-1, 0, 0),
-                        new Vector3(2, 0, 0),
-                        new Vector3(-2, 0, 0),
-                        new Vector3(0, 1, 0),
-                        new Vector3(0, -1, 0)
+                        new Vector3(0,0,0),
+                        new Vector3(1,0,0),
+                        new Vector3(-1,0,0),
+                        new Vector3(2,0,0),
+                        new Vector3(-2,0,0),
+                        new Vector3(0,1,0),
+                        new Vector3(0,-1,0)
                     };
                 }
                 else
                 {
                     kicks = new Vector3[]
                     {
-                        new Vector3(0, 0, 0),
-                        new Vector3(1, 0, 0),
-                        new Vector3(-1, 0, 0),
-                        new Vector3(0, 1, 0),
-                        new Vector3(0, -1, 0)
+                        new Vector3(0,0,0),
+                        new Vector3(1,0,0),
+                        new Vector3(-1,0,0),
+                        new Vector3(0,1,0),
+                        new Vector3(0,-1,0)
                     };
                 }
                 bool validKick = false;
@@ -195,7 +246,7 @@ public class Piece : MonoBehaviour
     }
 
     /// <summary>
-    /// Округляет позицию фигуры до ближайших целых чисел, чтобы избежать дробных значений.
+    /// Округляет позицию фигуры до ближайших целых чисел, чтобы избежать дробных координат.
     /// </summary>
     void SnapPosition()
     {
@@ -203,7 +254,7 @@ public class Piece : MonoBehaviour
     }
 
     /// <summary>
-    /// Получает координаты ячейки для позиции, учитывая, что pivot = (0.5, 0.5).
+    /// Получает координаты ячейки для позиции, учитывая, что pivot = (0.5,0.5).
     /// Вычисляется как Floor(pos + 0.5).
     /// </summary>
     Vector2 GetCellCoordinates(Vector2 pos)
@@ -213,8 +264,7 @@ public class Piece : MonoBehaviour
 
     /// <summary>
     /// Проверяет, что каждый тайл фигуры (его ячейка) находится внутри поля.
-    /// Допустимые X: 0 ... Board.width - 1.
-    /// Допустимые Y: >= board.bottomOffset.
+    /// Допустимые X: 0 ... Board.width - 1, Y: >= board.bottomOffset.
     /// Также проверяется, что соответствующая ячейка в сетке не занята.
     /// </summary>
     bool IsValidPosition()
@@ -238,7 +288,8 @@ public class Piece : MonoBehaviour
 
     /// <summary>
     /// Фиксирует фигуру – добавляет все тайлы в сетку, запускает проверку совпадений и спавн новой фигуры.
-    /// Используется флаг _hasLanded для предотвращения двойного спавна.
+    /// Используется флаг _hasLanded, чтобы избежать двойного спавна.
+    /// Также уничтожается теневой объект.
     /// </summary>
     void LandPiece()
     {
@@ -247,6 +298,8 @@ public class Piece : MonoBehaviour
         _hasLanded = true;
         AddToBoard();
         board.CheckMatches();
+        if (ghostPiece != null)
+            Destroy(ghostPiece);
         FindObjectOfType<GameManager>().SpawnNextPiece();
         enabled = false;
     }
