@@ -40,6 +40,10 @@ public class Piece : MonoBehaviour
     /// </summary>
     void AssignTileColors()
     {
+        // Инициализируем Random с текущим временем (если вы не сбрасываете где-либо seed)
+        Random.InitState(System.DateTime.Now.Millisecond);
+
+        // Получаем список всех дочерних тайлов (исключая сам объект фигуры)
         Transform[] children = GetComponentsInChildren<Transform>();
         List<Transform> tiles = new List<Transform>();
         foreach (Transform t in children)
@@ -52,6 +56,8 @@ public class Piece : MonoBehaviour
         List<Color> colorsToAssign = new List<Color>();
         if (n <= availableColors.Length)
         {
+            // Если тайлов меньше или равно количеству доступных цветов,
+            // перемешиваем массив и берем первые n элементов.
             List<Color> shuffled = new List<Color>(availableColors);
             for (int i = 0; i < shuffled.Count; i++)
             {
@@ -65,6 +71,7 @@ public class Piece : MonoBehaviour
         }
         else
         {
+            // Если тайлов больше, первые получают уникальные цвета, а для остальных случайный цвет.
             List<Color> shuffled = new List<Color>(availableColors);
             for (int i = 0; i < shuffled.Count; i++)
             {
@@ -79,7 +86,7 @@ public class Piece : MonoBehaviour
                 colorsToAssign.Add(availableColors[Random.Range(0, availableColors.Length)]);
         }
 
-        // Назначаем цвета тайлам в порядке сортировки по локальной позиции (сначала по Y, затем по X)
+        // Сортируем тайлы по локальным координатам (сначала по Y, затем по X)
         tiles.Sort((a, b) =>
         {
             if (a.localPosition.y != b.localPosition.y)
@@ -87,6 +94,7 @@ public class Piece : MonoBehaviour
             return a.localPosition.x.CompareTo(b.localPosition.x);
         });
 
+        // Назначаем цвета тайлам в порядке сортировки
         for (int i = 0; i < tiles.Count; i++)
         {
             SpriteRenderer sr = tiles[i].GetComponent<SpriteRenderer>();
@@ -94,6 +102,7 @@ public class Piece : MonoBehaviour
                 sr.color = colorsToAssign[i];
         }
     }
+
 
     /// <summary>
     /// Создает теневую фигуру (ghost piece), которая копирует текущую фигуру,
