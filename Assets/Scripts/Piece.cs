@@ -3,47 +3,36 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Управляет падающей фигурой (как в Тетрисе).
-/// При фиксации фигуры её тайлы добавляются в сетку, затем запускается проверка совпадений и гравитация,
-/// после чего спавнится новая фигура.
-/// Каждая фигура состоит из разноцветных тайлов – для обычных фигур каждому тайлу назначается свой цвет,
-/// для I-фигуры все тайлы получают один случайный цвет (если нужно можно изменить логику).
-/// Реализованы hard drop (по пробелу) и wall kicks при повороте.
-/// Добавлена тенёвая фигура (ghost piece), которая показывает, куда опустится фигура при hard drop.
+/// Фигура состоит из разноцветных тайлов – каждому тайлу присваивается свой случайный цвет из набора (независимо для I-фигуры).
+/// Реализованы hard drop (по пробелу), wall kicks при повороте и теневой объект (ghost piece), который показывает конечное положение hard drop.
 /// </summary>
 public class Piece : MonoBehaviour
 {
-    public float fallTime = 1.0f; // Интервал автоматического падения
+    public float fallTime = 1.0f;
     private float fallTimer = 0f;
     private bool _hasLanded = false;
-
-    public float blockSize = 1f;  // Размер одного тайла (1×1)
+    public float blockSize = 1f;
     public Color[] availableColors = new Color[] { Color.red, Color.blue, Color.green, Color.yellow };
 
-    // Флаг для I-фигуры (специальные wall kick offset'ы)
+    // Флаг для I-фигуры (для специальных wall kick offset'ов)
     public bool isIShape = false;
 
     private Board board;
-    private GameObject ghostPiece; // Теневой объект
+    private GameObject ghostPiece;
 
     void Start()
     {
         board = FindObjectOfType<Board>();
-        // Назначаем разноцветные тайлы для фигуры
         AssignTileColors();
         CreateGhostPiece();
     }
 
     /// <summary>
     /// Назначает каждому тайлу внутри фигуры свой случайный цвет.
-    /// Если количество тайлов меньше или равно числу доступных цветов – каждому назначается уникальный цвет,
-    /// иначе первые получают уникальные, а оставшиеся – случайный цвет.
+    /// Если тайлов меньше или равно количеству доступных цветов, каждому присваивается уникальный цвет, иначе оставшиеся получают случайный.
     /// </summary>
     void AssignTileColors()
     {
-        // Инициализируем Random с текущим временем (если вы не сбрасываете где-либо seed)
-        Random.InitState(System.DateTime.Now.Millisecond);
-
-        // Получаем список всех дочерних тайлов (исключая сам объект фигуры)
         Transform[] children = GetComponentsInChildren<Transform>();
         List<Transform> tiles = new List<Transform>();
         foreach (Transform t in children)
@@ -56,8 +45,6 @@ public class Piece : MonoBehaviour
         List<Color> colorsToAssign = new List<Color>();
         if (n <= availableColors.Length)
         {
-            // Если тайлов меньше или равно количеству доступных цветов,
-            // перемешиваем массив и берем первые n элементов.
             List<Color> shuffled = new List<Color>(availableColors);
             for (int i = 0; i < shuffled.Count; i++)
             {
@@ -71,7 +58,6 @@ public class Piece : MonoBehaviour
         }
         else
         {
-            // Если тайлов больше, первые получают уникальные цвета, а для остальных случайный цвет.
             List<Color> shuffled = new List<Color>(availableColors);
             for (int i = 0; i < shuffled.Count; i++)
             {
@@ -86,7 +72,7 @@ public class Piece : MonoBehaviour
                 colorsToAssign.Add(availableColors[Random.Range(0, availableColors.Length)]);
         }
 
-        // Сортируем тайлы по локальным координатам (сначала по Y, затем по X)
+        // Сортируем тайлы по локальной позиции (сначала по Y, затем по X)
         tiles.Sort((a, b) =>
         {
             if (a.localPosition.y != b.localPosition.y)
@@ -94,7 +80,6 @@ public class Piece : MonoBehaviour
             return a.localPosition.x.CompareTo(b.localPosition.x);
         });
 
-        // Назначаем цвета тайлам в порядке сортировки
         for (int i = 0; i < tiles.Count; i++)
         {
             SpriteRenderer sr = tiles[i].GetComponent<SpriteRenderer>();
@@ -103,17 +88,14 @@ public class Piece : MonoBehaviour
         }
     }
 
-
     /// <summary>
-    /// Создает теневую фигуру (ghost piece), которая копирует текущую фигуру,
-    /// делает её прозрачной и обновляет ее позицию до конечного положения hard drop.
+    /// Создает теневую фигуру (ghost piece), которая показывает конечное положение hard drop.
+    /// Ghost piece – копия фигуры с уменьшенной прозрачностью.
     /// </summary>
     void CreateGhostPiece()
     {
         ghostPiece = Instantiate(gameObject, transform.position, transform.rotation);
-        // Удаляем компонент Piece из ghost
         Destroy(ghostPiece.GetComponent<Piece>());
-        // Обходим все SpriteRenderer в ghost и уменьшаем альфа-канал
         SpriteRenderer[] srList = ghostPiece.GetComponentsInChildren<SpriteRenderer>();
         foreach (SpriteRenderer sr in srList)
         {
@@ -124,14 +106,13 @@ public class Piece : MonoBehaviour
     }
 
     /// <summary>
-    /// Обновляет позицию теневой фигуры, вычисляя hard drop позицию.
+    /// Обновляет позицию теневой фигуры, вычисляя hard drop положение.
     /// </summary>
     void UpdateGhost()
     {
         if (ghostPiece == null)
             return;
         Vector3 ghostPos = transform.position;
-        // Клонируем позицию и опускаем до тех пор, пока положение допустимо
         while (IsValidPositionAt(ghostPos + Vector3.down))
         {
             ghostPos += Vector3.down;
@@ -141,9 +122,6 @@ public class Piece : MonoBehaviour
         ghostPiece.transform.rotation = transform.rotation;
     }
 
-    /// <summary>
-    /// Проверка позиции pos (без смещения объекта).
-    /// </summary>
     bool IsValidPositionAt(Vector3 pos)
     {
         Vector3 original = transform.position;
@@ -159,24 +137,20 @@ public class Piece : MonoBehaviour
             return;
 
         SnapPosition();
-
         UpdateGhost();
 
-        // Перемещение влево
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             transform.position += Vector3.left;
             if (!IsValidPosition())
                 transform.position += Vector3.right;
         }
-        // Перемещение вправо
         else if (Input.GetKeyDown(KeyCode.RightArrow))
         {
             transform.position += Vector3.right;
             if (!IsValidPosition())
                 transform.position += Vector3.left;
         }
-        // Поворот с wall kicks
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
             Vector3 originalPos = transform.position;
@@ -226,7 +200,6 @@ public class Piece : MonoBehaviour
                 }
             }
         }
-        // Hard drop по пробелу
         if (Input.GetKeyDown(KeyCode.Space))
         {
             while (IsValidPosition())
@@ -238,7 +211,6 @@ public class Piece : MonoBehaviour
             SnapPosition();
             LandPiece();
         }
-        // Автоматическое падение
         fallTimer += Time.deltaTime;
         if (fallTimer >= fallTime)
         {
@@ -254,28 +226,16 @@ public class Piece : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Округляет позицию фигуры до ближайших целых чисел, чтобы избежать дробных координат.
-    /// </summary>
     void SnapPosition()
     {
         transform.position = new Vector3(Mathf.Round(transform.position.x), Mathf.Round(transform.position.y), transform.position.z);
     }
 
-    /// <summary>
-    /// Получает координаты ячейки для позиции, учитывая, что pivot = (0.5,0.5).
-    /// Вычисляется как Floor(pos + 0.5).
-    /// </summary>
     Vector2 GetCellCoordinates(Vector2 pos)
     {
         return new Vector2(Mathf.Floor(pos.x + 0.5f), Mathf.Floor(pos.y + 0.5f));
     }
 
-    /// <summary>
-    /// Проверяет, что каждый тайл фигуры (его ячейка) находится внутри поля.
-    /// Допустимые X: 0 ... Board.width - 1, Y: >= board.bottomOffset.
-    /// Также проверяется, что соответствующая ячейка в сетке не занята.
-    /// </summary>
     bool IsValidPosition()
     {
         foreach (Transform child in transform)
@@ -295,11 +255,6 @@ public class Piece : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Фиксирует фигуру – добавляет все тайлы в сетку, запускает проверку совпадений и спавн новой фигуры.
-    /// Используется флаг _hasLanded, чтобы избежать двойного спавна.
-    /// Также уничтожается теневой объект.
-    /// </summary>
     void LandPiece()
     {
         if (_hasLanded)
@@ -313,10 +268,6 @@ public class Piece : MonoBehaviour
         enabled = false;
     }
 
-    /// <summary>
-    /// Фиксирует все тайлы фигуры в сетке.
-    /// Индекс строки вычисляется как (cell.y - board.bottomOffset).
-    /// </summary>
     void AddToBoard()
     {
         foreach (Transform child in transform)
