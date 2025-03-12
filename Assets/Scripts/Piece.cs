@@ -33,6 +33,7 @@ public class Piece : MonoBehaviour
     /// </summary>
     void AssignTileColors()
     {
+        // Получаем список всех дочерних тайлов (исключая сам объект фигуры)
         Transform[] children = GetComponentsInChildren<Transform>();
         List<Transform> tiles = new List<Transform>();
         foreach (Transform t in children)
@@ -43,6 +44,9 @@ public class Piece : MonoBehaviour
 
         int n = tiles.Count;
         List<Color> colorsToAssign = new List<Color>();
+
+        // Если доступных цветов хватает для уникального назначения (длина массива >= число тайлов),
+        // назначаем уникальные цвета
         if (n <= availableColors.Length)
         {
             List<Color> shuffled = new List<Color>(availableColors);
@@ -58,6 +62,8 @@ public class Piece : MonoBehaviour
         }
         else
         {
+            // Если тайлов больше, чем цветов, для первых availableColors.Length тайлов назначаем уникальные цвета,
+            // а для оставшихся – случайный цвет
             List<Color> shuffled = new List<Color>(availableColors);
             for (int i = 0; i < shuffled.Count; i++)
             {
@@ -72,7 +78,25 @@ public class Piece : MonoBehaviour
                 colorsToAssign.Add(availableColors[Random.Range(0, availableColors.Length)]);
         }
 
-        // Сортируем тайлы по локальной позиции (сначала по Y, затем по X)
+        // Дополнительная проверка: если в последовательности получились 3 подряд одинаковых цвета,
+        // меняем третий на другой, чтобы не было трёх подряд.
+        for (int i = 2; i < colorsToAssign.Count; i++)
+        {
+            if (colorsToAssign[i].Equals(colorsToAssign[i - 1]) && colorsToAssign[i].Equals(colorsToAssign[i - 2]))
+            {
+                // Находим кандидата, отличный от предыдущего цвета
+                foreach (Color candidate in availableColors)
+                {
+                    if (!candidate.Equals(colorsToAssign[i - 1]))
+                    {
+                        colorsToAssign[i] = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Сортируем тайлы по локальным координатам: сначала по Y, затем по X
         tiles.Sort((a, b) =>
         {
             if (a.localPosition.y != b.localPosition.y)
@@ -80,6 +104,7 @@ public class Piece : MonoBehaviour
             return a.localPosition.x.CompareTo(b.localPosition.x);
         });
 
+        // Назначаем полученные цвета тайлам
         for (int i = 0; i < tiles.Count; i++)
         {
             SpriteRenderer sr = tiles[i].GetComponent<SpriteRenderer>();
@@ -87,6 +112,7 @@ public class Piece : MonoBehaviour
                 sr.color = colorsToAssign[i];
         }
     }
+
 
     /// <summary>
     /// Создает теневую фигуру (ghost piece), которая показывает конечное положение hard drop.
