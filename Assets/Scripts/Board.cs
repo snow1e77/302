@@ -6,23 +6,23 @@ using UnityEngine;
 /// Управляет игровым полем. Сетка имеет размеры width x (height + extraRows).
 /// Дно поля поднято на bottomOffset единиц – допустимые мировые Y начинаются с bottomOffset.
 /// При фиксации тайлов индекс строки вычисляется как (worldY - bottomOffset).
-/// Реализованы совпадения (3+ подряд тайлов одного цвета) и гравитация для связных групп.
-/// Добавлена возможность предгенерации блоков в нижней части поля (как будто уже накопилось мусора).
+/// Реализованы проверка совпадений (3+ подряд тайлов одного цвета) и гравитация для связных групп.
+/// Также добавлена возможность предсгенерировать ряды тайлов в нижней части поля (как будто уже накоплено мусора).
 /// </summary>
 public class Board : MonoBehaviour
 {
     public static int width = 12;       // Число столбцов
     public static int height = 24;      // Число видимых строк
 
-    public int extraRows = 4;           // Дополнительные строки (для висящих тайлов)
-    public int bottomOffset = 1;        // Подъём дна поля (допустимые мировые Y ≥ bottomOffset)
+    public int extraRows = 4;           // Дополнительные строки для "висящих" тайлов
+    public int bottomOffset = 1;        // Подъём дна поля (допустимые мировые Y >= bottomOffset)
 
     // Новые поля для предсгенерированных рядов
     public int pregenRows = 2;          // Количество рядов, которые будут предгенерированы внизу
     public GameObject pregenTilePrefab; // Префаб тайла для предгенерации
     public Color[] pregenColors = new Color[] { Color.red, Color.blue, Color.green, Color.yellow };
 
-    // Полная высота сетки = height + extraRows
+    // Сетка: общая высота = height + extraRows
     public Transform[,] grid;
 
     void Awake()
@@ -32,7 +32,7 @@ public class Board : MonoBehaviour
 
     void Start()
     {
-        // Создаем предсгенерированные блоки в нижней части игрового поля
+        // Генерируем предсгенерированные ряды в нижней части поля
         GeneratePreGeneratedRows();
     }
 
@@ -47,7 +47,7 @@ public class Board : MonoBehaviour
 
     /// <summary>
     /// Проверяет, находится ли мировая позиция pos внутри сетки.
-    /// Допустимые X: 0..width-1; Y: от bottomOffset до bottomOffset + gridHeight - 1.
+    /// Допустимые X: от 0 до width - 1; Y: от bottomOffset до bottomOffset + gridHeight - 1.
     /// </summary>
     public bool IsInsideGrid(Vector2 pos)
     {
@@ -71,8 +71,8 @@ public class Board : MonoBehaviour
 
     /// <summary>
     /// Генерирует предсгенерированные ряды тайлов в нижней части поля.
-    /// Создаются ряды от y = bottomOffset до y = bottomOffset + pregenRows - 1.
-    /// В каждом ряду для каждой колонки создается тайл с случайным цветом из pregenColors.
+    /// Ряды заполняются ячейками с y от bottomOffset до bottomOffset + pregenRows - 1.
+    /// Для каждого тайла выбирается случайный цвет из массива pregenColors.
     /// </summary>
     public void GeneratePreGeneratedRows()
     {
@@ -81,11 +81,16 @@ public class Board : MonoBehaviour
             Debug.LogWarning("PregenTilePrefab не задан!");
             return;
         }
+        if (pregenColors == null || pregenColors.Length == 0)
+        {
+            Debug.LogWarning("PregenColors не заданы!");
+            return;
+        }
 
-        // Для каждого ряда, который мы хотим сгенерировать:
+        // Генерируем ряды для y от bottomOffset до bottomOffset + pregenRows - 1
         for (int y = bottomOffset; y < bottomOffset + pregenRows; y++)
         {
-            // Сохраняем цвета для текущего ряда, чтобы проверять соседей по горизонтали
+            // Для проверки предотвращения трёх подряд одинаковых цветов в одном ряду
             List<Color> currentRowColors = new List<Color>();
             for (int x = 0; x < width; x++)
             {
@@ -93,15 +98,14 @@ public class Board : MonoBehaviour
                 GameObject tileObj = Instantiate(pregenTilePrefab, spawnPos, Quaternion.identity, transform);
                 SpriteRenderer sr = tileObj.GetComponent<SpriteRenderer>();
 
-                // Выбираем случайный цвет из массива pregenColors
+                // Выбираем случайный цвет
                 Color chosenColor = pregenColors[Random.Range(0, pregenColors.Length)];
-                // Если уже есть два тайла в ряду, проверяем их цвет
+                // Если в ряду уже два подряд одинаковых цвета, выбираем другой цвет
                 if (x >= 2)
                 {
                     if (currentRowColors[x - 1] == currentRowColors[x - 2])
                     {
                         Color prevColor = currentRowColors[x - 1];
-                        // Формируем список кандидатных цветов, исключая prevColor
                         List<Color> candidateColors = new List<Color>();
                         foreach (Color c in pregenColors)
                         {
@@ -114,11 +118,11 @@ public class Board : MonoBehaviour
                         }
                     }
                 }
+
                 if (sr != null)
                 {
                     sr.color = chosenColor;
                 }
-                // Запоминаем цвет для текущего ряда
                 currentRowColors.Add(chosenColor);
 
                 // Добавляем тайл в сетку
@@ -134,7 +138,8 @@ public class Board : MonoBehaviour
     /// <summary>
     /// Проверяет совпадения по горизонтали и вертикали для всей сетки.
     /// Удаляются группы, где 3+ подряд тайлов имеют одинаковый цвет.
-    /// После удаления запускается гравитация и повторная проверка совпадений.
+    /// После удаления запускается гравитация и через задержку повторная проверка.
+    /// Дополнительно можно (раскомментировать) удалить всю связную область тайлов данного цвета.
     /// </summary>
     public void CheckMatches()
     {
@@ -167,6 +172,10 @@ public class Board : MonoBehaviour
                             if (!tilesToRemove.Contains(t))
                                 tilesToRemove.Add(t);
                         }
+                        // Дополнительная логика: удалить всю связную область данного цвета (без диагоналей)
+                        /*
+                        RemoveConnectedTiles(matchH[0], col);
+                        */
                     }
 
                     // Вертикальная проверка
@@ -186,6 +195,9 @@ public class Board : MonoBehaviour
                             if (!tilesToRemove.Contains(t))
                                 tilesToRemove.Add(t);
                         }
+                        /*
+                        RemoveConnectedTiles(matchV[0], col);
+                        */
                     }
                 }
             }
@@ -212,9 +224,64 @@ public class Board : MonoBehaviour
         CheckMatches();
     }
 
+    /*
+    // Дополнительная логика (раскомментировать для активации):
+    // Удаляет всю связную область тайлов того же цвета (без диагоналей)
+    private void RemoveConnectedTiles(Transform start, Color color)
+    {
+        Vector2 cell = GetCellCoordinates(start.position);
+        int startX = (int)cell.x;
+        int startY = (int)cell.y - bottomOffset;
+
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+        bool[,] visited = new bool[width, grid.GetLength(1)];
+        queue.Enqueue(new Vector2Int(startX, startY));
+        visited[startX, startY] = true;
+
+        while(queue.Count > 0)
+        {
+            Vector2Int current = queue.Dequeue();
+            Transform t = grid[current.x, current.y];
+            if(t != null)
+            {
+                SpriteRenderer sr = t.GetComponent<SpriteRenderer>();
+                if(sr != null && sr.color.Equals(color))
+                {
+                    grid[current.x, current.y] = null;
+                    Destroy(t.gameObject);
+
+                    Vector2Int[] neighbors = new Vector2Int[]
+                    {
+                        new Vector2Int(current.x+1, current.y),
+                        new Vector2Int(current.x-1, current.y),
+                        new Vector2Int(current.x, current.y+1),
+                        new Vector2Int(current.x, current.y-1)
+                    };
+                    foreach(Vector2Int nb in neighbors)
+                    {
+                        if(nb.x >= 0 && nb.x < width && nb.y >= 0 && nb.y < grid.GetLength(1))
+                        {
+                            if(!visited[nb.x, nb.y] && grid[nb.x, nb.y]!=null)
+                            {
+                                SpriteRenderer nsr = grid[nb.x, nb.y].GetComponent<SpriteRenderer>();
+                                if(nsr != null && nsr.color.Equals(color))
+                                {
+                                    visited[nb.x, nb.y] = true;
+                                    queue.Enqueue(nb);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    */
+
     /// <summary>
     /// Гравитация: каждая связная группа тайлов опускается максимально вниз за один шаг.
-    /// Используется BFS для поиска связной группы и вычисляется максимальное падение для всей группы.
+    /// Используется BFS для поиска группы, затем вычисляется максимально возможное падение для группы,
+    /// и группа опускается на это число ячеек.
     /// </summary>
     public IEnumerator FillEmptySpaces()
     {
@@ -230,12 +297,11 @@ public class Board : MonoBehaviour
                 {
                     if (!visited[x, y] && grid[x, y] != null)
                     {
-                        // Собираем связную группу тайлов
+                        // Собираем связную группу тайлов через BFS
                         List<Vector2Int> group = new List<Vector2Int>();
                         Queue<Vector2Int> queue = new Queue<Vector2Int>();
                         queue.Enqueue(new Vector2Int(x, y));
                         visited[x, y] = true;
-
                         while (queue.Count > 0)
                         {
                             Vector2Int cell = queue.Dequeue();
@@ -260,14 +326,13 @@ public class Board : MonoBehaviour
                             }
                         }
 
-                        // Вычисляем максимальное падение для всей группы
+                        // Вычисляем максимально возможное падение для всей группы
                         int maxFall = int.MaxValue;
                         Dictionary<Vector2Int, Transform> tileMap = new Dictionary<Vector2Int, Transform>();
                         foreach (Vector2Int cell in group)
                         {
                             tileMap[cell] = grid[cell.x, cell.y];
                         }
-                        // Очищаем ячейки группы
                         foreach (Vector2Int cell in group)
                         {
                             grid[cell.x, cell.y] = null;
@@ -296,7 +361,6 @@ public class Board : MonoBehaviour
 
                         if (maxFall > 0 && maxFall != int.MaxValue)
                         {
-                            // Сортируем группу по возрастанию y
                             group.Sort((a, b) => a.y.CompareTo(b.y));
                             foreach (Vector2Int cell in group)
                             {
@@ -308,7 +372,6 @@ public class Board : MonoBehaviour
                         }
                         else
                         {
-                            // Если падения нет, возвращаем тайлы на места
                             foreach (Vector2Int cell in group)
                             {
                                 grid[cell.x, cell.y] = tileMap[cell];
@@ -317,6 +380,7 @@ public class Board : MonoBehaviour
                     }
                 }
             }
+
             if (moved)
                 yield return new WaitForSeconds(0.1f);
         } while (moved);
